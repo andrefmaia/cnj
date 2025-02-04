@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Audiência">
+    <description><![CDATA[Código: AUD
+.]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Secretaria e Gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,2896:1470,2896:1469,10:5483')}"/>
+    </swimlane>
+    <swimlane name="Audiências">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,10:5483,9:1469,9:5197,2896:1470,2896:1469,2896:1338,2896:5197')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" priority="3"/>
+        <transition to="[JEF] Apagar variável minutaEmElaboracao" name="Apagar variável minutaEmElaboracao"/>
+    </start-state>  
+    <!-- NODES -->
+    <node name="[JEF] Apagar variável minutaEmElaboracao">
+        <transition to="[JEF] Existe audiência?" name="Existe audiência?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </node>
+    <decision expression="#{processoJudicialManager.getAudienciaDesignadaMaisAntiga(tramitacaoProcessualService.recuperaProcesso()) eq null ? 'Designar audiência' : 'Aguardar audiência'}" name="[JEF] Existe audiência?">
+        <transition to="[JEF] Audiência - Aguardar" name="Aguardar audiência"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Audiência - Designar">
+        <task name="[JEF] Audiência - Designar" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="designarAudienciaLote" mapped-name="designarAudienciaLote:designarAudienciaLote" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Existe audiência?" name="Aguardar audiência"/>
+        <transition to="[JEF] Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência selecionada?" name="Elaborar ata"/>
+        <transition to="[JEF] Verificar possibilidade de intimar eletronicamente" name="Intimar acerca da audiência eletronicamente"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Elaborar ata, Nó de desvio, Aguardar audiência, Determinar próxima tarefa')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Aguardar">
+        <task name="[JEF] Audiência - Aguardar" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="designarAudienciaLote" mapped-name="designarAudienciaLote:designarAudienciaLote" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Tem audiência para cancelar?" name="Cancelar audiências automaticamente"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência selecionada?" name="Elaborar ata"/>
+        <transition to="[JEF] Verificar possibilidade de intimar eletronicamente" name="Intimar acerca da audiência eletronicamente"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Elaborar ata, Nó de desvio, Intimar acerca da audiência eletronicamente, Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:aguardaDataAudiencia', true)}"/>
+        </event>
+    </task-node>
+    <decision expression="#{processoAudienciaManager.procurarAudienciasAbertasPorProcesso(tramitacaoProcessualService.recuperaProcesso(), null).size() &gt; 0 ? 'Cancelar audiências' : 'Designar audiência'}" name="[JEF] Tem audiência para cancelar?">
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Cancelar audiências" name="Cancelar audiências"/>
+    </decision>
+    <node name="[JEF] Cancelar audiências">
+        <transition to="[JEF] Pode intimar do cancelamento eletronicamente" name="Pode intimar do cancelamento eletronicamente"/>
+        <event type="node-enter">
+            <action expression="#{processoAudienciaManager.cancelarAudiencias(tramitacaoProcessualService.recuperaProcesso(), 'Cancelamento em lote')}"/>
+        </event>
+    </node>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A,P') ? 'Intimar do cancelamento da audiência' : 'Preparar comunicação da audiência'}" name="[JEF] Pode intimar do cancelamento eletronicamente">
+        <transition to="[JEF] Intimar do cancelamento da audiência" name="Intimar do cancelamento da audiência"/>
+        <transition to="[JEF] Preparar comunicação da audiência" name="Preparar comunicação da audiência"/>
+    </decision>
+    <node name="[JEF] Intimar do cancelamento da audiência">
+        <transition to="[JEF] Audiência - Cancelada" name="Audiência cancelada"/>
+        <event type="node-enter">
+            <action expression="#{documentoJudicialService.juntarDocumento(documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,60,4107),taskInstance.id)}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Cancelada">
+        <task name="[JEF] Audiência - Cancelada" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="designarAudienciaLote" mapped-name="designarAudienciaLote:designarAudienciaLote" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Existe audiência?" name="Aguardar audiência"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Verificar possibilidade de intimar eletronicamente" name="Intimar acerca da audiência eletronicamente"/>
+        <transition to="[JEF] Audiência selecionada?" name="Minutar ata de audiência"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Minutar ata de audiência, Nó de desvio, Aguardar audiência, Intimar acerca da audiência eletronicamente, Determinar próxima tarefa')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Convertida em diligência">
+        <task name="[JEF] Audiência - Convertida em diligência" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="designarAudienciaLote" mapped-name="designarAudienciaLote:designarAudienciaLote" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Existe audiência?" name="Aguardar audiência"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Verificar possibilidade de intimar eletronicamente" name="Intimar acerca da audiência eletronicamente"/>
+        <transition to="[JEF] Audiência selecionada?" name="Minutar ata de audiência"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Minutar ata de audiência, Nó de desvio, Aguardar audiência, Intimar acerca da audiência eletronicamente, Determinar próxima tarefa')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaDesignacao' or tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaRedesignacao' ? 'Intimar da designação' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaCancelamento' ? 'Intimar do cancelamento' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaConversaoDiligencia' ? 'Convertida em diligência' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:aguardaDataAudiencia' ? 'Elaborar ata' : 'Intimar da designação')))}" name="[JEF] Determinar próxima tarefa">
+        <transition to="[JEF] Audiência - Convertida em diligência" name="Convertida em diligência"/>
+        <transition to="[JEF] Audiência selecionada?" name="Elaborar ata"/>
+        <transition to="[JEF] Verificar possibilidade de intimar eletronicamente" name="Intimar da designação"/>
+        <transition to="[JEF] Pode intimar do cancelamento eletronicamente" name="Intimar do cancelamento"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+    </decision>
+    <decision expression="#{processoJudicialManager.getAudienciaDesignadaMaisAntiga(tramitacaoProcessualService.recuperaProcesso()) eq null ? 'Designar audiência' : (atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A,P') ? 'Intimar acerca da audiência' : 'Preparar comunicação da audiência')}" name="[JEF] Verificar possibilidade de intimar eletronicamente">
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Intimar acerca da audiência" name="Intimar acerca da audiência"/>
+        <transition to="[JEF] Preparar comunicação da audiência" name="Preparar comunicação da audiência"/>
+    </decision>
+    <node name="[JEF] Intimar acerca da audiência">
+        <transition to="[JEF] Audiência - Aguardar" name="Aguardar audiência"/>
+        <event type="node-enter">
+            <action expression="#{documentoJudicialService.juntarDocumento(documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,60,81),taskInstance.id)}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+        </event>
+    </node>
+    <process-state name="[JEF] Preparar comunicação da audiência">
+        <sub-process name="[JEF] Preparar Ato de Comunicação Simplificado" binding="late"/>
+        <transition to="[JEF] Testa saída preparar comunicação da audiência" name="Testa saída preparar comunicação da audiência"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pacs:naoIntimar') ? 'Pendente de comunicação da audiência' : 'Aguardar audiência'}" name="[JEF] Testa saída preparar comunicação da audiência">
+        <transition to="[JEF] Audiência - Aguardar" name="Aguardar audiência"/>
+        <transition to="[JEF] Audiência - Pendente de comunicação" name="Pendente de comunicação da audiência"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pac:naoIntimar')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Audiência - Pendente de comunicação">
+        <task name="[JEF] Audiência - Pendente de comunicação" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="avisoPendeciaIntimacao" mapped-name="textAlert:avisoPendeciaIntimacao" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoPendenciaIntimacao
+Label: As partes não foram intimadas automaticamente. Encaminhe o processo para tarefa Prepara comunicação.
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Audiência - Aguardar" name="Aguardar audiência"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar comunicação da audiência" name="Preparar comunicação da audiência"/>
+    </task-node>
+    <decision expression="#{empty tramitacaoProcessualService.recuperaVariavel('pje:fluxo:audienciaSelecionada') ? 'Designar audiência' : 'Minutar ata de audiência'}" name="[JEF] Audiência selecionada?">
+        <transition to="[JEF] Audiência - Designar" name="Designar audiência"/>
+        <transition to="[JEF] Audiência - Elaborar ata" name="Minutar ata de audiência"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:audienciaSelecionada', processoJudicialManager.getAudienciaDesignadaMaisAntiga(tramitacaoProcessualService.recuperaProcesso()))}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Audiência - Elaborar ata">
+        <task name="[JEF] Audiência - Elaborar ata" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="avisoProximaAudiencia" mapped-name="textAlert:avisoProximaAudiencia" access="read,write"/>
+                <variable name="ProcessoAudiencia_informarDadosAudiencia" mapped-name="frame:ProcessoAudiencia_informarDadosAudiencia" access="read,write"/>
+                <variable name="Minutar_ata" mapped-name="textEditAndAttachmentSignature:Minutar_ata" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="minutarLote" mapped-name="minutarLote:minutarLote" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoProximaAudiencia
+Label: Audiência selecionada: #{tramitacaoProcessualService.recuperaVariavel('pje:fluxo:audienciaSelecionada')}
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Audiência - Assinar ata" name="Assinar ata"/>
+        <transition to="[JEF] Audiência realizada" name="Audiência realizada">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência - Elaborar cálculo" name="Elaborar cálculo"/>
+        <transition to="[JEF] Excluir ata" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Audiência realizada')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Audiência realizada, Nó de desvio')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','87')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Assinar ata">
+        <task name="[JEF] Audiência - Assinar ata" swimlane="Audiências" priority="4">
+            <controller>
+                <variable name="avisoProximaAudiencia" mapped-name="textAlert:avisoProximaAudiencia" access="read,write"/>
+                <variable name="ProcessoAudiencia_informarDadosAudiencia" mapped-name="frame:ProcessoAudiencia_informarDadosAudiencia" access="read,write"/>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="avisoUsuarioMinutou" mapped-name="textAlert:avisoUsuarioMinutou" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoProximaAudiencia
+Label: Audiência selecionada: #{tramitacaoProcessualService.recuperaVariavel('pje:fluxo:audienciaSelecionada')}
+Tipo: Aviso
+
+Variável: avisoUsuarioMinutou
+Label: Usuário que preparou a minuta: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Audiência realizada" name="Audiência realizada">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência - Elaborar ata" name="Elaborar ata"/>
+        <transition to="[JEF] Audiência - Elaborar cálculo" name="Elaborar cálculo"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Audiência realizada')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Retornar para minutar ata de audiência, Audiência realizada')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','87')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Elaborar cálculo">
+        <task name="[JEF] Audiência - Elaborar cálculo" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="avisoProximaAudiencia" mapped-name="textAlert:avisoProximaAudiencia" access="read,write"/>
+                <variable name="ProcessoAudiencia_informarDadosAudiencia" mapped-name="frame:ProcessoAudiencia_informarDadosAudiencia" access="read,write"/>
+                <variable name="ataAudiencia" mapped-name="textEditCombo:ataAudiencia" access="read,write"/>
+                <variable name="avisoUsuarioMinutou" mapped-name="textAlert:avisoUsuarioMinutou" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoProximaAudiencia
+Label: Audiência selecionada: #{tramitacaoProcessualService.recuperaVariavel('pje:fluxo:audienciaSelecionada')}
+Tipo: Aviso
+
+Variável: avisoUsuarioMinutou
+Label: Usuário que preparou a minuta: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Audiência - Assinar ata" name="Assinar ata"/>
+        <transition to="[JEF] Audiência - Devolvido do cálculo" name="Devolvido do cálculo"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Devolvido do ´cálculo')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','87')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Audiência - Devolvido do cálculo">
+        <task name="[JEF] Audiência - Devolvido do cálculo" swimlane="Audiências" priority="3">
+            <controller>
+                <variable name="avisoProximaAudiencia" mapped-name="textAlert:avisoProximaAudiencia" access="read,write"/>
+                <variable name="ProcessoAudiencia_informarDadosAudiencia" mapped-name="frame:ProcessoAudiencia_informarDadosAudiencia" access="read,write"/>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="avisoUsuarioMinutou" mapped-name="textAlert:avisoUsuarioMinutou" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoProximaAudiencia
+Label: Audiência selecionada: #{tramitacaoProcessualService.recuperaVariavel('pje:fluxo:audienciaSelecionada')}
+Tipo: Aviso
+
+Variável: avisoUsuarioMinutou
+Label: Usuário que preparou a minuta: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Audiência - Assinar ata" name="Assinar ata"/>
+        <transition to="[JEF] Audiência realizada" name="Audiência realizada">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência - Elaborar ata" name="Elaborar ata"/>
+        <transition to="[JEF] Audiência - Elaborar cálculo" name="Elaborar cálculo"/>
+        <transition to="Nó de Desvio - [JEF] Audiência" name="Nó de Desvio - [JEF] Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Audiência realizada')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Assinar ata, Elaborar ata, Audiência realizada')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','87')}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Excluir ata">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('paj:atoNaoAssinado', true)}"/>
+            <action expression="#{miniPacService.apagarVariaveisMiniPacContexto()}"/>
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{processoDocumentoManager.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+        </event>
+    </node>
+    <node name="[JEF] Audiência realizada">
+        <transition to="[JEF] Lançar movimento de audiência" name="Lançar movimento de audiência"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('saidaAudiencia', 'audienciaRealizada')}"/>
+            <action expression="#{preencherMovimento.deCodigo('581').comComplementoDeCodigo('4').doTipoDominio().preencherComElementoDeCodigo('4050001').associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')).lancarMovimento()}"/>
+        </event>
+    </node>
+    <node name="[JEF] Lançar movimento de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoAudienciaHome.instance.setStatusAudiencia(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:statusAudienciaSelecionada'))}"/>
+            <action expression="#{processoAudienciaHome.update()}"/>
+            <action expression="#{preencherMovimento.deCodigo(parametroUtil.getFromContext('codMovimentoAudiencia',false)).comComplementoDeNome('tipo_de_audiencia').preencherComObjeto(processoAudienciaHome.instance.tipoAudiencia).comComplementoDeNome('situacao_da_audiencia').preencherComObjeto(processoAudienciaHome.instance.statusAudiencia.label).comComplementoDeNome('data_hora').preencherComObjeto(processoAudienciaHome.instance.getDtInicioFormatada()).comComplementoDeNome('local').preencherComObjeto(processoAudienciaHome.instance.getSalaAudiencia()).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')).associarAoProcesso(tramitacaoProcessualService.recuperaProcesso()).lancarMovimento()}"/>
+        </event>
+    </node>
+    <end-state name="Término">
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:statusAudienciaSelecionada')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('usuarioMinuta')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:audienciaSelecionada')}"/>
+        </event>
+    </end-state>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Audiência">
+        <task name="Nó de Desvio - [JEF] Audiência" priority="3"/>
+        <transition to="[JEF] Audiência - Aguardar" name="Aguardar"/>
+        <transition to="[JEF] Audiência - Assinar ata" name="Assinar ata"/>
+        <transition to="[JEF] Audiência - Cancelada" name="Cancelada"/>
+        <transition to="[JEF] Audiência - Designar" name="Designar"/>
+        <transition to="[JEF] Audiência - Devolvido do cálculo" name="Devolvido do cálculo"/>
+        <transition to="[JEF] Audiência - Elaborar ata" name="Elaborar ata"/>
+        <transition to="[JEF] Audiência - Elaborar cálculo" name="Elaborar cálculo"/>
+        <transition to="[JEF] Audiência - Pendente de comunicação" name="Pendente de comunicação"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Audiência - Convertida em diligência" name="[JEF] Audiência - Convertida em diligência"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

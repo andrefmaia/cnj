@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Arquivamento">
+    <description><![CDATA[Código: ARQ2]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Arquivamento"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Processo em fluxo paralelo?" name="Processo em fluxo paralelo?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{entityManager.createNativeQuery(&quot;select count(*) &gt; 1 from jbpm_processdefinition pd inner join jbpm_processinstance pi on pd.id_ = pi.processdefinition_ inner join jbpm_taskinstance ti on pi.id_ = ti.procinst_ inner join jbpm_variableinstance vi on pi.id_ = vi.processinstance_ where vi.name_ = 'processo' and vi.longvalue_ = :idProcesso and pi.end_ is null and ti.end_ is null&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() ? 'Analisar pendência' : 'Tem expediente aberto?'}" name="Processo em fluxo paralelo?">
+        <transition to="Arquivamento - Analisar pendência" name="Analisar pendência"/>
+        <transition to="Tem expediente aberto?" name="Tem expediente aberto?"/>
+    </decision>
+    <task-node end-tasks="true" name="Arquivamento - Analisar pendência">
+        <task name="Arquivamento - Analisar pendência" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="atencao" mapped-name="textMessage:atencao" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: atencao
+Label: #{util.eval(parametroUtil.getParametro('fluxo:mensagemPendenciaArquivamento'))}
+Tipo: Aviso Customizado]]></description>
+        <transition to="Processo em fluxo paralelo?" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Arquivamento" name="Nó de Desvio - Arquivamento">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{atoComunicacaoService.getAtosComunicacaoAbertos(tramitacaoProcessualService.recuperaProcesso()) &gt; 0 ? 'Fechar expediente' : 'Tem audiência aberta?'}" name="Tem expediente aberto?">
+        <transition to="Arquivamento - Fechar expediente" name="Fechar expediente"/>
+        <transition to="Tem audiência aberta?" name="Tem audiência aberta?"/>
+    </decision>
+    <task-node end-tasks="true" name="Arquivamento - Fechar expediente">
+        <task name="Arquivamento - Fechar expediente" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="atencao" mapped-name="textMessage:atencao" access="read,write"/>
+                <variable name="WEB-INF_xhtml_flx_exped_encerrarExpedienteManual" mapped-name="frame:WEB-INF_xhtml_flx_exped_encerrarExpedienteManual" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: atencao
+Labe: Existe prazo aberto que impede a arquivamento!
+Tipo: Aviso Customizado]]></description>
+        <transition to="Tem expediente aberto?" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Arquivamento" name="Nó de Desvio - Arquivamento">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{processoJudicialManager.getAudienciaDesignadaMaisAntiga(tramitacaoProcessualService.recuperaProcesso()) eq null ? 'Tem perícia aberta?' : 'Analisar audiência'}" name="Tem audiência aberta?">
+        <transition to="Tem perícia aberta?" name="Tem perícia aberta?"/>
+        <transition to="Arquivamento - Analisar audiência" name="Analisar audiência"/>
+    </decision>
+    <task-node end-tasks="true" name="Arquivamento - Analisar audiência">
+        <task name="Arquivamento - Analisar audiência" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="atencao" mapped-name="textMessage:atencao" access="read,write"/>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: atencao
+Label: Existe audiência designada que impede a arquivamento!
+Tipo: Aviso Customizado]]></description>
+        <transition to="Tem audiência aberta?" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Arquivamento" name="Nó de Desvio - Arquivamento">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+        </event>
+    </task-node>
+    <decision expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia = 'M' AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0 ? 'Analisar perícia' : 'Arquivar processo'}" name="Tem perícia aberta?">
+        <transition to="Arquivar processo" name="Arquivar processo"/>
+        <transition to="Arquivamento - Analisar perícia" name="Analisar perícia"/>
+    </decision>
+    <task-node end-tasks="true" name="Arquivamento - Analisar perícia">
+        <task name="Arquivamento - Analisar perícia" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="atencao" mapped-name="textMessage:atencao" access="read,write"/>
+                <variable name="Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" mapped-name="frame:Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: atencao
+Label: Existe perícia designada que impede a arquivamento!
+Tipo: Aviso Customizado]]></description>
+        <transition to="Tem perícia aberta?" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Arquivamento" name="Nó de Desvio - Arquivamento">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Arquivar processo">
+        <transition to="Arquivamento - Arquivados" name="Arquivamento - Arquivados"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(22).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.removerSituacao('jus:andamento')}"/>
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:arquivado')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Arquivamento - Arquivados">
+        <task name="Arquivamento - Arquivados" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="ultimoAtoProferido" mapped-name="visualizarUltimoAto:ultimoAtoProferido" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - Arquivamento" name="Nó de Desvio - Arquivamento">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Reativar processo" name="Reativar processo"/>
+        <event type="task-create">
+            <action expression="#{taskInstanceUtil.setFrameDefaultTransition('Encaminhar para análise da secretaria')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo','false')}"/>
+        </event>
+    </task-node>
+    <node name="Reativar processo">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(849).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.removerSituacao('jus:arquivado')}"/>
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:andamento')}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Arquivamento">
+        <task name="Nó de Desvio - Arquivamento" swimlane="Nó de Desvio - Arquivamento" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Arquivamento - Fechar expediente" name="Arquivamento - Fechar expediente"/>
+        <transition to="Arquivamento - Analisar pendência" name="Arquivamento - Resolver pendência"/>
+        <transition to="Arquivamento - Arquivados" name="Arquivamento - Arquivados"/>
+        <transition to="Arquivamento - Analisar audiência" name="Arquivamento - Analisar audiência"/>
+        <transition to="Arquivamento - Analisar perícia" name="Arquivamento - Analisar perícia"/>
+        <transition to="Processo em fluxo paralelo?" name="Processo em fluxo paralelo?"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

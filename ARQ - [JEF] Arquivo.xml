@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Arquivo">
+    <description><![CDATA[Código: ARQ.]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - [JEF] Arquivo">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469')}"/>
+    </swimlane>
+    <swimlane name="Secretaria e gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Secretaria e gabinete" priority="3"/>
+        <transition to="[JEF] Arquivar processo" name="Arquivar processo"/>
+    </start-state>  
+    <!-- NODES -->
+    <node name="[JEF] Arquivar processo">
+        <transition to="[JEF] Arquivo" name="Arquivo"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(22).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.removerSituacao('jus:andamento')}"/>
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:arquivado')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Arquivo">
+        <task name="[JEF] Arquivo" swimlane="Secretaria e gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Reativar processo" name="Reativar processo"/>
+        <transition to="Nó de Desvio - [JEF] Arquivo" name="Nó de Desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de arquivamento" name="Migrar para o novo fluxo"/>
+    </task-node>
+    <node name="[JEF] Reativar processo">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(849).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.removerSituacao('jus:arquivado')}"/>
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:andamento')}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de arquivamento">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jaArquivado', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ARQ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Arquivo">
+        <task name="Nó de Desvio - [JEF] Arquivo" swimlane="Nó de Desvio - [JEF] Arquivo" priority="3"/>
+        <transition to="[JEF] Arquivo" name="Arquivo"/>
+        <transition to="Término" name="Término"/>
+    </task-node>
+    <node name="Incluir no fluxo AUGUSTO">
+        <transition to="Término" name="Término"/>
+        <event type="node-leave">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JFCE_AUGUSTO_01')}"/>
+        </event>
+    </node>
+    <node name="Fluxo KARLA">
+        <transition to="Término" name="Término"/>
+        <event type="node-leave">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JFCE_KARLA_01')}"/>
+        </event>
+    </node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>

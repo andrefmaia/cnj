@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Análise de comunicação">
+    <description><![CDATA[Código: ANCOM]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945,4738:1')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Análise de comunicação"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Intimação via sistema?" name="Intimação via sistema?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesEletronico().size() &gt; 0 ? 'Encaminhar via sistema' : 'Intimação via telefone ou pessoal?'}" name="Intimação via sistema?">
+        <transition to="Encaminhar via sistema" name="Encaminhar via sistema"/>
+        <transition to="Intimação via telefone ou pessoal?" name="Intimação via telefone ou pessoal?"/>
+    </decision>
+    <node name="Encaminhar via sistema">
+        <transition to="Intimação via telefone ou pessoal?" name="Intimação via telefone ou pessoal?"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.getExpedientesEletronico().{e | preencherMovimento.deCodigo(60).associarAoDocumento(e.processoDocumentoVinculadoExpediente != null ? e.processoDocumentoVinculadoExpediente : e.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(e.tipoProcessoDocumento.idTipoProcessoDocumento eq 62 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 64 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 119 ? 78 : 80).lancarMovimento()}}"/>
+        </event>
+    </node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesTelefone().size() &gt; 0 or comunicacaoProcessualAction.getExpedientesPessoal().size() &gt; 0 ? 'Encaminhar via telefone ou pessoalmente' : 'Intimação via central de mandados?'}" name="Intimação via telefone ou pessoal?">
+        <transition to="Encaminhar via telefone ou pessoalmente" name="Encaminhar via telefone ou pessoalmente"/>
+        <transition to="Intimação via central de mandados?" name="Intimação via central de mandados?"/>
+    </decision>
+    <node name="Encaminhar via telefone ou pessoalmente">
+        <transition to="Registrar ciência" name="Registrar ciência"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.getExpedientesTelefone().{e | preencherMovimento.deCodigo(60).associarAoDocumento(e.processoDocumentoVinculadoExpediente != null ? e.processoDocumentoVinculadoExpediente : e.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(e.tipoProcessoDocumento.idTipoProcessoDocumento eq 62 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 64 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 119 ? 78 : 80).lancarMovimento()}}"/>
+            <action expression="#{comunicacaoProcessualAction.getExpedientesPessoal().{e | preencherMovimento.deCodigo(60).associarAoDocumento(e.processoDocumentoVinculadoExpediente != null ? e.processoDocumentoVinculadoExpediente : e.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(e.tipoProcessoDocumento.idTipoProcessoDocumento eq 62 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 64 or e.tipoProcessoDocumento.idTipoProcessoDocumento eq 119 ? 78 : 80).lancarMovimento()}}"/>
+        </event>
+    </node>
+    <node name="Registrar ciência">
+        <transition to="Intimação via central de mandados?" name="Intimação via central de mandados?"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.registrarCienciaExpedientePessoal()}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Comunicação - Registrar ciência">
+        <task name="Comunicação - Registrar ciência" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Intimação via central de mandados?" name="Prosseguir"/>
+        <transition to="Nó de Desvio - Análise de comunicação" name="Nó de Desvio - Análise de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesMandados().size() &gt; 0 ? 'Tem mais de uma central de mandados?' : 'Intimação via correios?'}" name="Intimação via central de mandados?">
+        <transition to="Intimação via correios?" name="Intimação via correios?"/>
+        <transition to="Tem mais de uma central de mandados?" name="Tem mais de uma central de mandados?"/>
+    </decision>
+    <decision expression="#{centralMandadoManager.obterPorLocalizacoes(localizacaoManager.getArvoreAscendente(tramitacaoProcessualService.recuperaProcesso().getOrgaoJulgador().getLocalizacao().getIdLocalizacao(), true)).size() &gt; 1 ? 'Selecionar central de mandados' : 'Encaminhar via central de mandados'}" name="Tem mais de uma central de mandados?">
+        <transition to="Encaminhar via central de mandados" name="Encaminhar via central de mandados"/>
+        <transition to="Comunicação - Selecionar central de mandados" name="Selecionar central de mandados"/>
+    </decision>
+    <task-node end-tasks="true" name="Comunicação - Selecionar central de mandados">
+        <task name="Comunicação - Selecionar central de mandados" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_expedientes_centralmandados" mapped-name="frame:Processo_Fluxo_expedientes_centralmandados" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Encaminhar via central de mandados" name="Encaminhar para central de mandados"/>
+        <transition to="Nó de Desvio - Análise de comunicação" name="Nó de Desvio - Análise de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Encaminhar via central de mandados">
+        <transition to="Intimação via correios?" name="Intimação via correios?"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('M', 'processoExpedienteAtual','#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.processoDocumentoVinculadoExpediente != null ? processoExpedienteAtual.processoDocumentoVinculadoExpediente : processoExpedienteAtual.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(78).lancarMovimento()}')}"/>
+        </event>
+    </node>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesCorreios().size() &gt; 0 ? 'Encaminhar via correios' : 'Determinar saída'}" name="Intimação via correios?">
+        <transition to="Determinar saída" name="Determinar saída"/>
+        <transition to="Encaminhar via correios" name="Encaminhar via correios"/>
+    </decision>
+    <node name="Encaminhar via correios">
+        <transition to="Comunicação - Imprimir correspondência" name="Comunicação - Imprimir correspondência"/>
+        <event type="node-enter">
+            <action expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('C', 'processoExpedienteAtual','#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(170).associarAoProcesso(tramitacaoProcessualService.recuperaProcesso()).lancarMovimento()}')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Comunicação - Imprimir correspondência">
+        <task name="Comunicação - Imprimir correspondência" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+                <variable name="Processo_Fluxo_expedientes_correios" mapped-name="frame:Processo_Fluxo_expedientes_correios" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - Análise de comunicação" name="Nó de Desvio - Análise de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Determinar saída" name="Prosseguir"/>
+    </task-node>
+    <decision expression="#{not empty tramitacaoProcessualService.recuperaVariavel('fluxo:saida') ? tramitacaoProcessualService.recuperaVariavel('fluxo:saida') : (comunicacaoProcessualAction.getExpedientesCorreios().size() &gt; 0 or comunicacaoProcessualAction.getExpedientesMandados().size() &gt; 0 ? 'Incluir no fluxo de controle de devolução de expediente' : 'Incluir no fluxo de controle de prazo')}" name="Determinar saída">
+        <transition to="Incluir no fluxo de audiência cancelada" name="Audiência cancelada"/>
+        <transition to="Incluir no fluxo de controle de devolução de expediente" name="Incluir no fluxo de controle de devolução de expediente"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Incluir no fluxo de controle de prazo"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Operação de audiência"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Operação de perícia"/>
+        <transition to="Incluir no fluxo de perícia cancelada" name="Perícias canceladas"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('fluxo:saida')}"/>
+        </event>
+    </decision>
+    <node name="Incluir no fluxo de controle de devolução de expediente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'CONTRDEVEXP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'CONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'OPAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de audiência cancelada">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'AUDCANC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'OPPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de perícia cancelada">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'PERCANC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Análise de comunicação">
+        <task name="Nó de Desvio - Análise de comunicação" swimlane="Nó de Desvio - Análise de comunicação" priority="3"/>
+        <transition to="Comunicação - Registrar ciência" name="Comunicação - Registrar ciência"/>
+        <transition to="Comunicação - Selecionar central de mandados" name="Comunicação - Selecionar central de mandados"/>
+        <transition to="Comunicação - Imprimir correspondência" name="Comunicação - Imprimir correspondência"/>
+        <transition to="Término" name="Término"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>

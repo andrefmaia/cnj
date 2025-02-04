@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Audiência cancelada">
+    <description><![CDATA[Código: AUDCANC
+.]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Audiência cancelada"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Audiência - Canceladas" name="Audiência - Canceladas"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="Audiência - Canceladas">
+        <task name="Audiência - Cancelada" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="designarAudienciaLote" mapped-name="designarAudienciaLote:designarAudienciaLote" access="read"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de intimação da designação de audiência" name="Intimar da designção de audiência"/>
+        <transition to="Incluir no fluxo de elaboração de ata de audiência" name="Minutar ata de audiência"/>
+        <transition to="Nó de Desvio - Audiência cancelada" name="Nó de Desvio - Audiência cancelada">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Determinar próxima tarefa')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaDesignacao' or tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaRedesignacao' ? 'Incluir no fluxo de intimação da designação de audiência' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaCancelamento' ? 'Incluir no fluxo de cancelamento de audiências' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:audiencia:aguardaConversaoDiligencia' ? 'Incluir no fluxo de intimação da conversão em diligência da audiência' : 'Incluir no fluxo de intimação da designação de audiência'))}" name="Determinar próxima tarefa">
+        <transition to="Incluir no fluxo de intimação da conversão em diligência da audiência" name="Incluir no fluxo de intimação da conversão em diligência da audiência"/>
+        <transition to="Incluir no fluxo de cancelamento de audiências" name="Incluir no fluxo de cancelamento de audiências"/>
+        <transition to="Incluir no fluxo de intimação da designação de audiência" name="Incluir no fluxo de intimação da designação de audiência"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+    </decision>
+    <node name="Incluir no fluxo de operação de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'OPAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação da designação de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'INTDESAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de ata de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ELATAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação da conversão em diligência da audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'INTCONVDILAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de cancelamento de audiências">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('apenasIntimarCancelamento', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'CANCAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Nó de Desvio - Audiência cancelada">
+        <task name="Nó de Desvio - Audiência cancelada" swimlane="Nó de Desvio - Audiência cancelada" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Audiência - Canceladas" name="Audiência - Canceladas"/>
+    </task-node>
+    <end-state name="Término"/>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
