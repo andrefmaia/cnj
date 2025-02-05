@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Certificação de trânsito em julgado">
+    <description><![CDATA[Código: CERTTRANSJULG]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Certificação de trânsito em julgado"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Trânsito em julgado - Informar data" name="Trânsito em julgado - Informar data"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="Trânsito em julgado - Informar data">
+        <task name="Trânsito em julgado - Informar data" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="dataTransitoJulgado" mapped-name="datePast:dataTransitoJulgado" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: dataTransitoJulgado
+Label: Data do trânsito em julgado
+Tipo: Data passada]]></description>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Juntar certidão de trânsito em julgado" name="Juntar certidão de trânsito em julgado">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('arquivar', false)}"/>
+        </transition>
+        <transition to="Juntar certidão de trânsito em julgado" name="Juntar certidão de trânsito em julgado e arquivar">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('arquivar', true)}"/>
+        </transition>
+        <transition to="Nó de Desvio - Certificação de trânsito em julgado" name="Nó de Desvio - Certificação de trânsito em julgado">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Juntar certidão de trânsito em julgado">
+        <transition to="Arquivar?" name="Arquivar?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.recuperaProcesso().setDtTransitadoJulgado(not empty tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado') ? tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado') :  dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd'),'yyyy-MM-dd'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('certidaoTransitoJulgado', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,70,80))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('certidaoTransitoJulgado'),null)}"/>
+            <action expression="#{preencherMovimento.deCodigo(848).comComplementoDeCodigo(14).doTipoDinamico().preencherComData(not empty tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado') ? dateUtil.stringToDate(dateUtil.getDataFormatada(tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado'),'dd/MM/yyyy'),'dd/MM/yyyy') :  dateUtil.stringToDate(dateUtil.getDataAtual('dd/MM/yyyy'),'dd/MM/yyyy')).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{preencherMovimento.deCodigo(581).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(107).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('certidaoTransitoJulgado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('dataTransitoJulgado')}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('arquivar') ? 'Arquivar' : 'Transitados'}" name="Arquivar?">
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Trânsito em julgado - Transitados" name="Transitados"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('arquivar')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="Trânsito em julgado - Transitados">
+        <task name="Trânsito em julgado - Transitados" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="ultimoAto" mapped-name="visualizarUltimoAto:ultimoAto" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Certificação de trânsito em julgado" name="Nó de Desvio - Certificação de trânsito em julgado">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Incluir no fluxo de arquivamento">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ARQ2', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('dataTransitoJulgado')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Certificação de trânsito em julgado">
+        <task name="Nó de Desvio - Certificação de trânsito em julgado" swimlane="Nó de Desvio - Certificação de trânsito em julgado" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Trânsito em julgado - Informar data" name="Trânsito em julgado - Informar data"/>
+        <transition to="Trânsito em julgado - Transitados" name="Trânsito em julgado - Transitados"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>

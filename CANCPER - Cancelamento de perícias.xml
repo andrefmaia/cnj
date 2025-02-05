@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Cancelamento de perícias">
+    <description><![CDATA[Código: CANCPER]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Cancelamento de perícias"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Apenas intimar do cancelamento?" name="Apenas intimar do cancelamento?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('apenasIntimarCancelamento') ? 'Pode intimar via sistema?' : 'Tem audiência desginada?'}" name="Apenas intimar do cancelamento?">
+        <transition to="Tem perícia desginada?" name="Tem perícia desginada?"/>
+        <transition to="Pode intimar via sistema?" name="Pode intimar via sistema?"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('apenasIntimarCancelamento')}"/>
+        </event>
+    </decision>
+    <decision expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia = 'M' AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0 ? 'Cancelar perícias' : 'Incluir no fluxo de operação de perícia'}" name="Tem perícia desginada?">
+        <transition to="Incluir no fluxo de operação de perícia" name="Incluir no fluxo de operação de perícia"/>
+        <transition to="Cancelar perícias" name="Cancelar perícias"/>
+    </decision>
+    <node name="Incluir no fluxo de operação de perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'OPPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Cancelar perícias">
+        <transition to="Ainda tem perícia para cancelar?" name="Ainda tem perícia para cancelar?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pericia',entityManager.createQuery(&quot;SELECT pp FROM ProcessoPericia pp WHERE pp.processoTrf = :processo AND pp.status = 'M'&quot;).setParameter('processo', tramitacaoProcessualService.recuperaProcesso()).setMaxResults(1).getSingleResult())}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaVariavel('pericia').setPessoaCancela(authenticator.getPessoaLogada())}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaVariavel('pericia').setStatus('C')}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaVariavel('pericia').setMotivo('Cancelamento em lote')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pericia')}"/>
+        </event>
+    </node>
+    <decision expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE id_processo_trf = :processo AND cd_status_pericia = 'M'&quot;).setParameter('processo', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0 ? 'Cancelar perícias' : 'Pode intimar via sistema?'}" name="Ainda tem perícia para cancelar?">
+        <transition to="Cancelar perícias" name="Cancelar perícias"/>
+        <transition to="Pode intimar via sistema?" name="Pode intimar via sistema?"/>
+    </decision>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A,P')  ? 'Intimar do cancelamento da perícia' : 'Perícia - Intimar do cancelamento'}" name="Pode intimar via sistema?">
+        <transition to="Perícia - Intimar do cancelamento" name="Perícia - Intimar do cancelamento"/>
+        <transition to="Intimar do cancelamento da perícia" name="Intimar do cancelamento da perícia"/>
+    </decision>
+    <node name="Intimar do cancelamento da perícia">
+        <transition to="Incluir no fluxo de perícias canceladas" name="Incluir no fluxo de perícias canceladas"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:ultimoDocumentoJuntado',documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,60,4108))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'),taskInstance.id)}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de perícias canceladas">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'PERCANC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Perícia - Intimar do cancelamento">
+        <task name="Perícia - Intimar do cancelamento" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="atencao" mapped-name="textMessage:atencao" access="read,write"/>
+                <variable name="comunicacao" mapped-name="textEditAndAttachmentSignature:comunicacao" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+                <variable name="intimarEmLote" mapped-name="intimarLote:intimarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: atencao
+Label: Uma ou mais partes não puderam ser intimadas via sistema!
+Tipo: Aviso Customizado]]></description>
+        <transition to="Incluir no fluxo de operação de perícia" name="Designar péricia"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de análise de comunicação" name="Incluir no fluxo de análise de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Cancelamento de perícias" name="Nó de Desvio - Cancelamento de perícias">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes',centralMandadoManager.obterPorLocalizacoes(localizacaoManager.getArvoreAscendente(tramitacaoProcessualService.recuperaProcesso().getOrgaoJulgador().getLocalizacao().getIdLocalizacao(), true)).size() &gt; 0 ? 'E,M,T,S,G' : 'E,T,S,G')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Incluir no fluxo de análise de comunicação')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos', 'Incluir no fluxo de análise de comunicação, Encaminhar para análise da secretaria, Designar perícia')}"/>
+        </event>
+        <event type="task-assign">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds', not empty tramitacaoProcessualService.recuperaVariavel('jef:idsDocumentosPossiveis') ? tramitacaoProcessualService.recuperaVariavel('jef:idsDocumentosPossiveis') : parametroUtil.getParametro('pje:fluxo:idsDocumentosPAC'))}"/>
+        </event>
+    </task-node>
+    <node name="Incluir no fluxo de análise de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('condicaoLancamentoMovimentosTemporario')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('fluxo:saida','Perícias canceladas')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoDocumentoManager.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+            <action expression="#{miniPacService.apagarVariaveisMiniPacContexto()}"/>
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('condicaoLancamentoMovimentosTemporario')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Cancelamento de perícias">
+        <task name="Nó de Desvio - Cancelamento de perícias" swimlane="Nó de Desvio - Cancelamento de perícias" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Perícia - Intimar do cancelamento" name="Perícia - Intimar do cancelamento"/>
+        <transition to="Tem perícia desginada?" name="Tem perícia desginada?"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
