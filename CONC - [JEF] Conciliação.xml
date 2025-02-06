@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Conciliação">
+    <description><![CDATA[Código: CONC]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Conciliação">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('2896:1470,2896:5197,2896:1469,2896:1338,2896:5483')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" priority="3"/>
+        <transition to="[JEF] Lançar movimento de atribuição de competência temporária" name="Lançar movimento de atribuição de competência temporária"/>
+    </start-state>  
+    <!-- NODES -->
+    <node name="[JEF] Lançar movimento de atribuição de competência temporária">
+        <transition to="[JEF] Separação em deslocamento para o setor de conciliação" name="Separação em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(12297).lancarMovimento()}"/>
+        </event>
+    </node>
+    <fork name="[JEF] Separação em deslocamento para o setor de conciliação">
+        <transition to="[JEF] Testa processo do Ceará" name="Teste processo do Ceará"/>
+        <transition to="[JEF] Testa processo de Sergipe" name="Testa processo de Sergipe"/>
+        <transition to="[JEF] Testa processo Recife" name="Testa processo Recife"/>
+        <transition to="[JEF] Testa processo Caruaru" name="Testa processo Caruaru"/>
+        <transition to="[JEF] Testa processo Petrolina" name="Testa processo Petrolina"/>
+        <transition to="[JEF] Testa processo Campina Grande" name="Testa processo Campina Grande"/>
+        <transition to="[JEF] Testa processo Rio Grande do Norte" name="Testa processo Rio Grande do Norte"/>
+    </fork>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.estado.estado.equalsIgnoreCase('Ceará') ?  'Desloca fluxo para conciliação do ceará' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo do Ceará">
+        <description><![CDATA[#{tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador == 2 'Desloca fluxo para conciliação do ceará' : 'Junção em deslocamento para o setor de conciliação'}]]></description>
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="[JEF] Desloca fluxo para conciliação do ceará" name="Desloca fluxo para conciliação do ceará"/>
+    </decision>
+    <node name="[JEF] Desloca fluxo para conciliação do ceará">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),7,0,5)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.estado.estado.equalsIgnoreCase('Sergipe') ?  'Desloca fluxo para conciliação de sergipe' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo de Sergipe">
+        <description><![CDATA[#{tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador == 2 'Desloca fluxo para conciliação do ceará' : 'Junção em deslocamento para o setor de conciliação'}]]></description>
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="[JEF] Desloca fluxo para conciliação de sergipe" name="Desloca fluxo para conciliação de sergipe"/>
+    </decision>
+    <node name="[JEF] Desloca fluxo para conciliação de sergipe">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),44,0,81)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.numeroOrigem == 8300 or tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador == 75 or tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador == 77 or tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador == 78?  'Desloca fluxo para conciliação Recife' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo Recife">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="[JEF] Desloca fluxo para conciliação Recife" name="Desloca fluxo para conciliação Recife"/>
+    </decision>
+    <node name="[JEF] Desloca fluxo para conciliação Recife">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),86,0,167)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.numeroOrigem == 8302 ?  'Desloca fluxo para conciliação Caruaru' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo Caruaru">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="[JEF] Desloca fluxo para conciliação Caruaru" name="Desloca fluxo para conciliação Caruaru"/>
+    </decision>
+    <node name="[JEF] Desloca fluxo para conciliação Caruaru">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="[JEF] Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),87,0,169)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.numeroOrigem == 8308 ?  'Desloca fluxo para conciliação Petrolina' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo Petrolina">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="[JEF] Desloca fluxo para conciliação Petrolina" name="Desloca fluxo para conciliação Petrolina"/>
+    </decision>
+    <node name="[JEF] Desloca fluxo para conciliação Petrolina">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),88,0,171)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.numeroOrigem == 8201 ?  'Desloca fluxo para conciliação Campina Grande' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo Campina Grande">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="Desloca fluxo para conciliação Campina Grande" name="Desloca fluxo para conciliação Campina Grande"/>
+    </decision>
+    <node name="Desloca fluxo para conciliação Campina Grande">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),79,0,151)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaProcesso().jurisdicao.estado.estado.equalsIgnoreCase('Rio Grande do Norte') ?  'Desloca fluxo para conciliação Rio Grande do Norte' : 'Junção em deslocamento para o setor de conciliação'}" name="[JEF] Testa processo Rio Grande do Norte">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <transition to="Desloca fluxo para conciliação Rio Grande do Norte" name="Desloca fluxo para conciliação Rio Grande do Norte"/>
+    </decision>
+    <node name="Desloca fluxo para conciliação Rio Grande do Norte">
+        <transition to="[JEF] Junção em deslocamento para o setor de conciliação" name="Junção em deslocamento para o setor de conciliação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.idOrgaoJulgador)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:idOrgaoJulgadorCargoOrigem', tramitacaoProcessualService.recuperaProcesso().orgaoJulgadorCargo.idOrgaoJulgadorCargo)}"/>
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(),110,0,207)}"/>
+        </event>
+    </node>
+    <join name="[JEF] Junção em deslocamento para o setor de conciliação">
+        <transition to="[JEF] Triagem da conciliação" name="Triagem da conciliação"/>
+    </join>
+    <task-node end-tasks="true" name="[JEF] Triagem da conciliação">
+        <task name="[JEF] Triagem da conciliação" swimlane="Conciliação" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Conciliação" name="Nó de Desvio - [JEF] Conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de retorno para o juízo de origem" name="Retornar fluxo para juízo de origem">
+            <condition expression="#{empty tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+        <transition to="[JEF] Retornar fluxo para juízo de origem" name="Retornar fluxo para juízo de origem ">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+    </task-node>
+    <process-state name="[JEF] Preparar ato de comunicação">
+        <sub-process name="[JEF] Preparar Ato de Comunicação Simplificado" binding="late"/>
+        <transition to="[JEF] Testa saída preparar ato de comunicação" name="Testa saída preparar ato de comunicação"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pacs:naoIntimar') ? 'Análise da secretaria' : 'Controlar prazos'}" name="[JEF] Testa saída preparar ato de comunicação">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Análise da secretaria"/>
+        <transition to="Incluir no fluxo de determinação de controle de prazo" name="Controlar prazos"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pacs:naoIntimar')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar prazos">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Preparar ato judicial">
+        <sub-process name="[JEF] Preparar Ato Judicial" binding="late"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('paj:tipoConclusao')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('paj:tipoConclusao', jbpmUtil.getCurrentTransition().getName())}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:atoNaoAssinado') ? 'Análise da secretaria' : 'Analisar determinações'}" name="[JEF] Testa saída preparar ato judicial">
+        <transition to="[JEF] Análise da secretaria" name="Análise da secretaria"/>
+        <transition to="[JEF] Analisar determinações" name="Analisar determinações"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:atoNaoAssinado')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Análise da secretaria">
+        <task name="[JEF] Análise da secretaria" swimlane="Conciliação" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de elaboração de outros documentos" name="Elaborar documento"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Conciliação" name="Nó de Desvio - [JEF] Conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de retorno para o juízo de origem" name="Retornar fluxo para juízo de origem">
+            <condition expression="#{empty tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+        <transition to="[JEF] Retornar fluxo para juízo de origem" name="Retornar fluxo para juízo de origem ">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Analisar determinações">
+        <task name="[JEF] Analisar determinações" swimlane="Conciliação" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Conciliação" name="Nó de Desvio - [JEF] Conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de retorno para o juízo de origem" name="Retornar fluxo para juízo de origem">
+            <condition expression="#{empty tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+        <transition to="[JEF] Retornar fluxo para juízo de origem" name="Retornar fluxo para juízo de origem ">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('novoFluxo')}"/>
+        </transition>
+    </task-node>
+    <process-state name="[JEF] Designar audiência">
+        <sub-process name="[JEF] Audiência" binding="late"/>
+        <transition to="[JEF] Análise da secretaria" name="Análise da secretaria"/>
+    </process-state>
+    <process-state name="[JEF] Preparar ato ordinatório">
+        <sub-process name="[JEF] Preparar Ato Odinatório" binding="late"/>
+        <transition to="[JEF] Testa saída da preparar ato ordinatório" name="Testa saída da preparar ato ordinatório"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pao:atoNaoAssinado')  ? 'Nó de desvio' : (collectionUtilsPje.convertStringToLongList(tramitacaoProcessualService.recuperaVariavel('comunicacaoProcessualAction:idsExpedientes')).{e | processoExpedienteManager.find(e).processoDocumento.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado') or processoExpedienteManager.find(e).processoDocumentoVinculadoExpediente.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')}.contains(true) ? 'Controlar prazos' : 'Preparar ato de comunicação')}" name="[JEF] Testa saída da preparar ato ordinatório">
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazos"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pao:atoNaoAssinado')}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Retornar fluxo para juízo de origem">
+        <transition to="[JEF] Lançar movimento de remessa" name="Lançar movimento de remessa"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.deslocarOrgaoJulgador(tramitacaoProcessualService.recuperaProcesso(), tramitacaoProcessualService.recuperaVariavel('pje:idOrgaoOrigem'), tramitacaoProcessualService.recuperaVariavel('pje:idOrgaoColegiadoOrigem'), tramitacaoProcessualService.recuperaVariavel('pje:idOrgaoJulgadorCargoOrigem'), true)}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:idOrgaoOrigem')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:idOrgaoColegiadoOrigem')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:idOrgaoJulgadorCargoOrigem')}"/>
+        </event>
+    </node>
+    <node name="[JEF] Lançar movimento de remessa">
+        <transition to="Incluir no novo fluxo?" name="Incluir no novo fluxo?"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(123).comComplementoDeCodigo(18).doTipoDominio().preencherComElementoDeCodigo(37).comComplementoDeCodigo(7).doTipoDinamico().preencherComObjeto(tramitacaoProcessualService.recuperaProcesso().orgaoJulgador).lancarMovimento()}"/>
+        </event>
+    </node>
+    <decision expression="#{empty tramitacaoProcessualService.recuperaVariavel('novoFluxo') ? 'Término' : 'Incluir no novo fluxo'}" name="Incluir no novo fluxo?">
+        <transition to="Término" name="Término"/>
+        <transition to="Incluir no novo fluxo" name="Incluir no novo fluxo"/>
+    </decision>
+    <node name="Incluir no novo fluxo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), tramitacaoProcessualService.recuperaVariavel('novoFluxo'), processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Conciliação">
+        <task name="Nó de Desvio - [JEF] Conciliação" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Triagem da conciliação" name="Triagem da conciliação"/>
+        <transition to="[JEF] Analisar determinações" name="Analisar determinações"/>
+        <transition to="[JEF] Análise da secretaria" name="Análise da secretaria"/>
+    </task-node>
+    <end-state name="Término"/>
+    <node name="Incluir no fluxo de elaboração de despacho">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDESP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de decisão">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de outros documentos">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDOC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_OPAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de retorno para o juízo de origem">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_RETJUIZOR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de determinação de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', true)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'comunicacaoProcessualAction:idsExpedientes' and e.getKey() != 'pje:idOrgaoOrigem' and e.getKey() != 'pje:idOrgaoJulgadorCargoOrigem' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_DETCONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>
