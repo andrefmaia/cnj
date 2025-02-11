@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Consultar Convênios"> 
+    <!-- SWIMLANES -->
+    <swimlane name="Secretaria e Gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" priority="3"/>
+        <transition to="[JEF] Consultar convênios" name="Consultar convênios"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="[JEF] Consultar convênios">
+        <task name="[JEF] Consultar convênios" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="aviso1" mapped-name="textAlert:aviso1" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Consultar INFOJUD" name="Consultar INFOJUD"/>
+        <transition to="[JEF] Consultar BACENJUD" name="Consultar BACENJUD"/>
+        <transition to="[JEF] Consultar RENAJUD" name="Consultar RENAJUD"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Consultar Convênios" name="Nó de Desvio - [JEF] Consultar Convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Consultar BACENJUD">
+        <task name="[JEF] Consultar BACENJUD" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_paginaExterna" mapped-name="frame:WEB-INF_xhtml_flx_paginaExterna" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: WEB-INF_xhtml_flx_paginaExterna
+Label: https://www3.bcb.gov.br/bacenjud2/dologin
+Tipo: Frame]]></description>
+        <transition to="[JEF] Aguardar Resultado BACENJUD" name="Aguardar Resultado BACENJUD"/>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Consultar Convênios" name="Nó de Desvio - [JEF] Consultar Convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Consultar INFOJUD" name="Consultar INFOJUD"/>
+        <transition to="[JEF] Consultar RENAJUD" name="Consultar RENAJUD"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:flx:paginaExterna', 'https://www3.bcb.gov.br/bacenjud2/dologin')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Aguardar Resultado BACENJUD">
+        <task name="[JEF] Aguardar Resultado BACENJUD" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_paginaExterna" mapped-name="frame:WEB-INF_xhtml_flx_paginaExterna" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: WEB-INF_xhtml_flx_paginaExterna
+Label: https://www3.bcb.gov.br/bacenjud2/dologin
+Tipo: Frame]]></description>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="[JEF] Consultar BACENJUD" name="Consultar BACENJUD"/>
+        <transition to="Nó de Desvio - [JEF] Consultar Convênios" name="Nó de Desvio - [JEF] Consultar Convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Consultar INFOJUD" name="Consultar INFOJUD"/>
+        <transition to="[JEF] Consultar RENAJUD" name="Consultar RENAJUD"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:flx:paginaExterna', 'https://www3.bcb.gov.br/bacenjud2/dologin')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Consultar INFOJUD">
+        <task name="[JEF] Consultar INFOJUD" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_paginaExterna" mapped-name="frame:WEB-INF_xhtml_flx_paginaExterna" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: WEB-INF_xhtml_flx_paginaExterna
+Label: https://cav.receita.fazenda.gov.br/autenticacao/login/index
+Tipo: Frame]]></description>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Consultar Convênios" name="Nó de Desvio - [JEF] Consultar Convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Consultar BACENJUD" name="Consultar BACENJUD"/>
+        <transition to="[JEF] Consultar RENAJUD" name="Consultar RENAJUD"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:flx:paginaExterna', 'https://cav.receita.fazenda.gov.br/autenticacao/login')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Consultar RENAJUD">
+        <task name="[JEF] Consultar RENAJUD" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_paginaExterna" mapped-name="frame:WEB-INF_xhtml_flx_paginaExterna" access="read,write"/>
+                <variable name="movimentarLote" mapped-name="movimentarLote:movimentarLote" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: WEB-INF_xhtml_flx_paginaExterna
+Label: https://renajud.denatran.serpro.gov.br/renajud/login.jsf
+Tipo: Frame]]></description>
+        <transition to="Término" name="Nó de desvio"/>
+        <transition to="[JEF] Conclusão para despacho" name="Conclusão para despacho"/>
+        <transition to="Nó de Desvio - [JEF] Consultar Convênios" name="Nó de Desvio - [JEF] Consultar Convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Consultar BACENJUD" name="Consultar BACENJUD"/>
+        <transition to="[JEF] Consultar INFOJUD" name="Consultar INFOJUD"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:flx:paginaExterna', 'https://renajud.denatran.serpro.gov.br/login.html')}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Conclusão para despacho">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('saidaConvenio', 'despacho')}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Consultar Convênios">
+        <task name="Nó de Desvio - [JEF] Consultar Convênios" priority="3"/>
+        <transition to="[JEF] Consultar BACENJUD" name="Consultar BACENJUD"/>
+        <transition to="[JEF] Aguardar Resultado BACENJUD" name="Aguardar Resultado BACENJUD"/>
+        <transition to="[JEF] Consultar INFOJUD" name="Consultar INFOJUD"/>
+        <transition to="[JEF] Consultar RENAJUD" name="Consultar RENAJUD"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Consultar convênios" name="[JEF] Consultar convênios"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

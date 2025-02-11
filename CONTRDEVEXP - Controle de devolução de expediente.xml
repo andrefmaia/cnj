@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Controle de devolução de expediente">
+    <description><![CDATA[Código: CONTRDEVEXP]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945,4738:1')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - Controle de devolução de expediente"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Recuperar expedientes físicos" name="Recuperar expedientes físicos"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+    </start-state>  
+    <!-- NODES -->
+    <node name="Recuperar expedientes físicos">
+        <transition to="Expediente físico - Informar prazo" name="Informar prazo"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('listaExpedienteFisico',processoParteExpedienteManager.recuperaExpedientesAbertosPorMeiosComunicacaoAndProcessoTrf(preparaAtoComunicacaoAction.recuperarListaDeExpedicaoExpedienteEnum('C,M'),tramitacaoProcessualService.recuperaProcesso()).{ppe | ppe.getIdProcessoParteExpediente()})}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('comunicacaoProcessualAction:idsExpedientes')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Expediente físico - Informar prazo">
+        <task name="Expediente físico - Informar prazo" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="avisoSemExpediente" mapped-name="textAlert:avisoSemExpediente" access="read,write"/>
+                <variable name="prazoDevolucao" mapped-name="number:prazoDevolucao" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: prazoDevolucao
+Label: Prazo para devolução do expediente
+Tipo: Numérico
+
+Variável: avisoSemExpediente
+Label:  #{tramitacaoProcessualService.recuperaVariavel('jef:listaExpedienteFisico').size() == 0 ? 'Não há expediente físico a ser controlado' : ''}
+Tipo: Aviso]]></description>
+        <transition to="Calcular prazo" name="Aguardar prazo de devolução">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('jef:listaExpedienteFisico').size() &gt; 0}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList('-1')).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Elaborar comunicação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Controle de devolução de expediente" name="Nó de Desvio - Controle de devolução de expediente">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Calcular prazo">
+        <transition to="Expediente físico - Aguardar" name="Aguardar"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:temporizador:dataAguardar',dateUtil.dataMaisDias(dateUtil.getDataAtual(),tramitacaoProcessualService.recuperaVariavel('prazoDevolucao') != null ? tramitacaoProcessualService.recuperaVariavel('prazoDevolucao') : 0))}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('prazoDevolucao')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Expediente físico - Aguardar">
+        <task name="Expediente físico - Aguardar" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="info" mapped-name="textMessage:info" access="read,write"/>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: info
+Label:O processo será movimentado automaticamente após o dia #{dateUtil.getDataFormatada(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:temporizador:dataAguardar'),'dd/MM/yyyy')}
+Tipo: Aviso Customizado]]></description>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList('-1')).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Elaborar comunicação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to=" Expedientes devolvidos?" name="Expedientes devolvidos?">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Expediente físico - Informar prazo" name="Informar novo prazo para devolução"/>
+        <transition to="Nó de Desvio - Controle de devolução de expediente" name="Nó de Desvio - Controle de devolução de expediente">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Expedientes devolvidos?')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:temporizador:tarefaAguardar',true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('sjp:aguardaDiligencia',true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('pje:aguardaFecharExpediente','true')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:registrociencia:meios','C,M')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') == 'pje:fluxo:temporizador:tarefaAguardar' ? (tramitacaoProcessualService.recuperaVariavel('naoDevolvido') ? 'Não devolvidos' : (tramitacaoProcessualService.recuperaVariavel('fechado') ? 'Não cumpridos' : 'Cumpridos')) : (tramitacaoProcessualService.recuperaVariavel('naoDevolvido') ? 'Aguardar' : (tramitacaoProcessualService.recuperaVariavel('fechado') ? 'Não cumpridos' : 'Cumpridos'))}" name=" Expedientes devolvidos?">
+        <transition to="Expediente físico - Aguardar" name="Aguardar"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Cumpridos"/>
+        <transition to="Expediente físico - Não cumpridos" name="Não cumpridos"/>
+        <transition to="Expediente físico - Não devolvidos" name="Não devolvidos"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('fechado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('naoDevolvido')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('fechado',entityManager.createNativeQuery(&quot;SELECT EXISTS (SELECT 1 FROM tb_proc_parte_expediente WHERE id_processo_parte_expediente IN (:listaExpedienteFisico) AND in_fechado = true)&quot;).setParameter('listaExpedienteFisico',tramitacaoProcessualService.recuperaVariavel('listaExpedienteFisico')).getSingleResult())}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('naoDevolvido',entityManager.createNativeQuery(&quot;SELECT EXISTS (SELECT 1 FROM tb_proc_parte_expediente WHERE id_processo_parte_expediente IN (:listaExpedienteFisico) AND in_fechado = false AND dt_ciencia_parte IS NULL)&quot;).setParameter('listaExpedienteFisico',tramitacaoProcessualService.recuperaVariavel('listaExpedienteFisico')).getSingleResult())}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="Expediente físico - Não cumpridos">
+        <task name="Expediente físico - Não cumpridos" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList('-1')).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Elaborar comunicação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - Controle de devolução de expediente" name="Nó de Desvio - Controle de devolução de expediente">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="Expediente físico - Não devolvidos">
+        <task name="Expediente físico - Não devolvidos" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="avisoSemExpediente" mapped-name="textAlert:avisoSemExpediente" access="read,write"/>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoSemExpediente
+Label:  #{tramitacaoProcessualService.recuperaVariavel('jef:listaExpedienteFisico').size() == 0 ? 'Não há expediente físico a ser controlado' : ''}
+Tipo: Aviso]]></description>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList('-1')).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Elaborar comunicação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Expediente físico - Informar prazo" name="Informar novo prazo para devolução">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('jef:listaExpedienteFisico').size() &gt; 0}"/>
+        </transition>
+        <transition to="Nó de Desvio - Controle de devolução de expediente" name="Nó de Desvio - Controle de devolução de expediente">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('prazoDevolucao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('listaExpedienteFisico')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:temporizador:dataAguardar')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('prazoDevolucao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('listaExpedienteFisico')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:temporizador:dataAguardar')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'CONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('prazoDevolucao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('listaExpedienteFisico')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:temporizador:dataAguardar')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ELCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Controle de devolução de expediente">
+        <task name="Nó de Desvio - Controle de devolução de expediente" swimlane="Nó de Desvio - Controle de devolução de expediente" priority="3"/>
+        <transition to="Expediente físico - Aguardar" name="Expediente físico - Aguardar"/>
+        <transition to="Expediente físico - Informar prazo" name="Expediente físico - Informar prazo"/>
+        <transition to="Expediente físico - Não cumpridos" name="Expediente físico - Não cumpridos"/>
+        <transition to="Expediente físico - Não devolvidos" name="Expediente físico - Não devolvidos"/>
+        <transition to="Término" name="Término"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
