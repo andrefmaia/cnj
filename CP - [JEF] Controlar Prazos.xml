@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Controlar Prazos">
+    <description><![CDATA[Fluxo destinado a permitir o controle automatizado de prazos. Os processos pendentes ficam em um nó oculto]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Secretaria e Gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,2896:1470,2896:1469,2896:5197,10:5483')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" priority="3"/>
+        <transition to="[JEF] Existe expediente com prazo e aberto?" name="Testa existência de expedientes"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{atoComunicacaoService.getAtosComunicacaoAbertos(processoJudicialService.findById(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'))) &gt; 0 ? 'Gravar expedientes em controle' : 'Existe expediente sem prazo e aberto?'}" name="[JEF] Existe expediente com prazo e aberto?">
+        <transition to="[JEF] Gravar expedientes em controle" name="Gravar expedientes em controle"/>
+        <transition to="[JEF] Existe expediente sem prazo e aberto?" name="Existe expediente sem prazo e aberto?"/>
+    </decision>
+    <node name="[JEF] Gravar expedientes em controle">
+        <transition to="[JEF] Processo com prazo em curso" name="Processo com prazo em curso"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('cp:expedientes',processoParteExpedienteManager.getAtosComunicacaoPendentes(tramitacaoProcessualService.recuperaProcesso()).{ppe | ppe.idProcessoParteExpediente})}"/>
+        </event>
+    </node>
+    <decision expression="#{processoParteExpedienteManager.getAtosComunicacaoSemPrazo(-1,processoJudicialService.findById(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'))).size() &gt; 0 ? 'Gravar variável sem prazo' : 'Gravar variável sem expediente'}" name="[JEF] Existe expediente sem prazo e aberto?">
+        <transition to="[JEF] Gravar variável sem expediente" name="Gravar variável sem expediente"/>
+        <transition to="[JEF] Gravar variável sem prazo" name="Gravar variável sem prazo"/>
+    </decision>
+    <node name="[JEF] Gravar variável sem prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('cp:semPrazo',true)}"/>
+        </event>
+    </node>
+    <node name="[JEF] Gravar variável sem expediente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('cp:semExpediente', true)}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Processo com prazo em curso">
+        <task name="[JEF] Processo com prazo em curso" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Existe expediente com prazo e aberto em controle?" name="Existe expediente com prazo e aberto em controle?">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Existe expediente aberto?" name="Fechar expedientes manualmente"/>
+        <transition to="[JEF] Gravar variável sem expediente" name="Nó de desvio"/>
+        <transition to="Nó de Desvio - [JEF] Controlar Prazos" name="Nó de Desvio - [JEF] Controlar Prazos">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Existe expediente com prazo e aberto em controle?')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('pje:fluxo:registrociencia:meios','E,C,M,T,S,G')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('pje:aguardaPeticao',true)}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:aguardaPeticao')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('cp:comPrazo', true)}"/>
+        </event>
+    </task-node>
+    <decision expression="#{atoComunicacaoService.getAtosComunicacaoAbertos(processoJudicialService.findById(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'))) &gt; 0 ? 'Processo com prazo em curso' : 'Término'}" name="[JEF] Existe expediente com prazo e aberto em controle?">
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Processo com prazo em curso" name="Processo com prazo em curso"/>
+    </decision>
+    <decision expression="#{atoComunicacaoService.getAtosComunicacaoAbertos(processoJudicialService.findById(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'))) &gt; 0 ? 'Fechar expediente manualmente' : 'Término'}" name="[JEF] Existe expediente aberto?">
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Fechar expediente manualmente" name="Fechar expediente manualmente"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Fechar expediente manualmente">
+        <task name="[JEF] Fechar expediente manualmente" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_exped_encerrarExpedienteManual" mapped-name="frame:WEB-INF_xhtml_flx_exped_encerrarExpedienteManual" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - [JEF] Controlar Prazos" name="Nó de Desvio - [JEF] Controlar Prazos">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Processo com prazo em curso" name="Processo com prazo em curso"/>
+        <transition to="Término" name="Remover da controle de prazo"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo','false')}"/>
+        </event>
+    </task-node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Controlar Prazos">
+        <task name="Nó de Desvio - [JEF] Controlar Prazos" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="[JEF] Processo com prazo em curso" name="Processo com prazo em curso"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Fechar expediente manualmente" name="Fechar expediente manualmente"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
