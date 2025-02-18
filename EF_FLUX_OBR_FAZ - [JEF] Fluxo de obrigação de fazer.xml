@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Fluxo de obrigação de fazer">
+    <description><![CDATA[Código: JEF_FLUX_OBR_FAZ]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - [JEF] Fluxo de obrigação de fazer">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469')}"/>
+    </swimlane>
+    <swimlane name="Secretaria e Gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="[JEF] Vincular etiqueta" name="Vincular etiqueta"/>
+    </start-state>  
+    <!-- NODES -->
+    <node name="[JEF] Vincular etiqueta">
+        <transition to="[JEF] Pendente de intimação?" name="Pendente de intimação?"/>
+        <event type="node-enter">
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Obrigação de fazer', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:pendenteIntimacao') ? 'Resolver pendência' : 'Controlar prazo'}" name="[JEF] Pendente de intimação?">
+        <transition to="[JEF] Obrigação de fazer - pendente de intimação" name="Resolver pendência"/>
+        <transition to="[JEF] Controlar prazo para obrigação de fazer" name="Controlar prazo"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:pendenteIntimacao')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Obrigação de fazer - pendente de intimação">
+        <task name="[JEF] Obrigação de fazer - pendente de intimação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="avisoPendencia" mapped-name="textAlert:avisoPendencia" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: avisoPendencia
+Label: Verifique se o órgão de cumprimento está vinculado como outros participantes no processo, com o tipo de participação "ÓRGÃO DE CUMPRIMENTO" e se ele pode receber intimações via sistema.
+Tipo: Aviso]]></description>
+        <transition to="[JEF] Desvincular etiqueta" name="Encerrar controle da obrigação de fazer"/>
+        <transition to="Nó de Desvio - [JEF] Fluxo de obrigação de fazer" name="Nó de Desvio - [JEF] Fluxo de obrigação de fazer">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar comunicação para obrigação de fazer" name="Preparar comunicação para obrigação de fazer"/>
+    </task-node>
+    <process-state name="[JEF] Controlar prazo para obrigação de fazer">
+        <sub-process name="[JEF] Fluxo de controle de prazo para obrigação de fazer" binding="late"/>
+        <transition to="[JEF] Obrigação de fazer - Analisar" name="[JEF] Obrigação de fazer - Analisar"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </process-state>
+    <task-node end-tasks="true" name="[JEF] Obrigação de fazer - Analisar">
+        <task name="[JEF] Obrigação de fazer - Analisar" swimlane="Secretaria e Gabinete" priority="3">
+            <controller/>
+        </task>
+        <transition to="[JEF] Desvincular etiqueta" name="Encerrar controle da obrigação de fazer"/>
+        <transition to="Nó de Desvio - [JEF] Fluxo de obrigação de fazer" name="Nó de Desvio - [JEF] Fluxo de obrigação de fazer">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar comunicação para obrigação de fazer" name="Renovar comunicação manualmente"/>
+        <transition to="[JEF] Renovar comunicação por 10 dias automaticamente" name="Renovar comunicação por 10 dias automaticamente"/>
+        <transition to="[JEF] Renovar comunicação por 20 dias automaticamente" name="Renovar comunicação por 20 dias automaticamente"/>
+        <transition to="[JEF] Pendente de intimação?" name="Pendente de intimação?">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:aguardaIntimacaoObrigacaoFazer', true)}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Pendente de intimação?')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Renovar comunicação por 10 dias automaticamente">
+        <transition to="[JEF] Pode intimar para obrigação de fazer?" name="Pode intimar para obrigação de fazer?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:prazo',10)}"/>
+        </event>
+    </node>
+    <node name="[JEF] Renovar comunicação por 20 dias automaticamente">
+        <transition to="[JEF] Pode intimar para obrigação de fazer?" name="Pode intimar para obrigação de fazer?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:prazo',20)}"/>
+        </event>
+    </node>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), tramitacaoProcessualService.recuperaVariavel('jef:args')) ? 'Intimar para obrigação de fazer' : 'Pendente de intimação'}" name="[JEF] Pode intimar para obrigação de fazer?">
+        <transition to="[JEF] Intimar para obrigação de fazer" name="Intimar para obrigação de fazer"/>
+        <transition to="[JEF] Obrigação de fazer - pendente de intimação" name="Pendente de intimação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsPessoa', entityManager.createNativeQuery(&quot;SELECT id_pessoa FROM tb_processo_parte WHERE id_processo_trf = :idProcessoTrf AND in_situacao = 'A' AND id_tipo_parte = (SELECT id_tipo_parte from tb_tipo_parte where ds_tipo_parte = 'ÓRGÃO DE CUMPRIMENTO') AND in_participacao = 'T'&quot;).setParameter('idProcessoTrf', tramitacaoProcessualService.recuperaVariavel('processo')).getResultList())}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:args', not empty tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa') ? entityManager.createNativeQuery(&quot;SELECT string_agg(ds_login,',') FROM tb_usuario_login WHERE id_usuario IN (:idUsuarios)&quot;).setParameter('idUsuarios', tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa')).getResultList() : null)}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Intimar para obrigação de fazer">
+        <transition to="[JEF] Pendente de intimação?" name="Pendente de intimação?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:intimacao', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('idTipoDocumentoIntimacaoObrigacaoFazer')).get(0),collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idModeloRenovacaoIntimacaoObrigacaoFazer')).get(0)))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('jef:intimacao'),null)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:pendenteIntimacao',tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa').{id | atoComunicacaoService.intimarDestinatarioEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),id,'D',tramitacaoProcessualService.recuperaVariavel('jef:prazo'), tramitacaoProcessualService.recuperaVariavel('jef:intimacao'))}.contains(false) or empty tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa'))}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsPessoa')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:intimacao')}"/>
+        </event>
+    </node>
+    <process-state name="[JEF] Preparar comunicação para obrigação de fazer">
+        <sub-process name="[JEF] Preparar Ato de Comunicação Simplificado" binding="late"/>
+        <transition to="[JEF] Testa saída de preparar comunicação para obrigação de fazer" name="Testa saída de preparar comunicação para obrigação de fazer"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsDocumentosPossiveis')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsDocumentosPossiveis',parametroUtil.getParametro('idTipoDocumentoIntimacaoObrigacaoFazer'))}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pacs:naoIntimar') ? 'Obrigação de fazer - Analisar' : 'Controlar prazo para obrigação de fazer'}" name="[JEF] Testa saída de preparar comunicação para obrigação de fazer">
+        <transition to="[JEF] Obrigação de fazer - Analisar" name="Obrigação de fazer - Analisar"/>
+        <transition to="[JEF] Controlar prazo para obrigação de fazer" name="Controlar prazo para obrigação de fazer"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pacs:naoIntimar')}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Desvincular etiqueta">
+        <transition to="Fluxo paralelo?" name="Fluxo paralelo?"/>
+        <event type="node-enter">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Obrigação de fazer', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+    </node>
+    <decision expression="#{entityManager.createNativeQuery(&quot;select count(*) &gt; 1 from jbpm_processdefinition pd inner join jbpm_processinstance pi on pd.id_ = pi.processdefinition_ inner join jbpm_taskinstance ti on pi.id_ = ti.procinst_ inner join jbpm_variableinstance vi on pi.id_ = vi.processinstance_ where vi.name_ = 'processo' and vi.longvalue_ = :idProcesso and pi.end_ is null and ti.end_ is null&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() ? 'Sinalizar fim do controle da obrigação de fazer' : 'Incluir no fluxo de análise da secretaria'}" name="Fluxo paralelo?">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <transition to="Sinalizar fim do controle da obrigação de fazer" name="Sinalizar fim do controle da obrigação de fazer"/>
+    </decision>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Sinalizar fim do controle da obrigação de fazer">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.sinalizarFluxo(tramitacaoProcessualService.recuperaProcesso(), 'fluxo:aguardaFimControleObrigacaoFazer', true, true, true)}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Fluxo de obrigação de fazer">
+        <task name="Nó de Desvio - [JEF] Fluxo de obrigação de fazer" swimlane="Nó de Desvio - [JEF] Fluxo de obrigação de fazer" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Obrigação de fazer - Analisar" name="[JEF] Obrigação de fazer - Analisar"/>
+        <transition to="[JEF] Obrigação de fazer - pendente de intimação" name="[JEF] Obrigação de fazer - pendente de intimação"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

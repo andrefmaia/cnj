@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Elaboração de cálculo">
+    <description><![CDATA[Código: ELCALC]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - Elaboração de cálculo"/>
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('9:1469,10:1338,9:5197,10:5483,9:5945')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Elaboração de cálculo - Minutar" name="Elaboração de cálculo - Minutar"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="Elaboração de cálculo - Minutar">
+        <task name="Elaboração de cálculo - Minutar" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="ModeloDocumento_listView" mapped-name="page:ModeloDocumento_listView" access="read,write"/>
+                <variable name="minuta" mapped-name="textEditAndAttachmentSignature:minuta" access="read,write"/>
+                <variable name="minutarEmLote" mapped-name="minutarLote:minutarEmLote" access="read"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: ModeloDocumento_listView
+Label: Criar modelo de documento
+Tipo: Página]]></description>
+        <transition to="Elaboração de cálculo - Assinar" name="Assinar"/>
+        <transition to="Descartar documento" name="Encaminhar para análise da secretaria"/>
+        <transition to="Homologar movimentos temporários" name="Homologar movimentos temporários">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Elaboração de cálculo" name="Nó de Desvio - Elaboração de cálculo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Elaboração de cálculo - Revisar" name="Revisar"/>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Homologar movimentos temporários')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos', 'Homologar movimentos temporários, Encaminhar para análise da secretaria')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds','57')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', 'true')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="Elaboração de cálculo - Revisar">
+        <task name="Elaboração de cálculo - Revisar" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="ModeloDocumento_listView" mapped-name="page:ModeloDocumento_listView" access="read,write"/>
+                <variable name="usuarioMinuta" mapped-name="textAlert:usuarioMinuta" access="read,write"/>
+                <variable name="minuta" mapped-name="textEditAndAttachmentSignature:minuta" access="read,write"/>
+                <variable name="minutarEmLote" mapped-name="minutarLote:minutarEmLote" access="read"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: ModeloDocumento_listView
+Label: Criar modelo de documento
+Tipo: Página
+
+Variável: usuarioMinuta
+Label: Usuário que minutou: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="Elaboração de cálculo - Assinar" name="Assinar"/>
+        <transition to="Elaboração de cálculo - Corrigir" name="Corrigir"/>
+        <transition to="Descartar documento" name="Encaminhar para análise da secretaria"/>
+        <transition to="Homologar movimentos temporários" name="Homologar movimentos temporários">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Elaboração de cálculo" name="Nó de Desvio - Elaboração de cálculo">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Homologar movimentos temporários')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos', 'Homologar movimentos temporários, Encaminhar para análise da secretaria')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds','57')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', 'true')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="Elaboração de cálculo - Corrigir">
+        <task name="Elaboração de cálculo - Corrigir" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="ModeloDocumento_listView" mapped-name="page:ModeloDocumento_listView" access="read,write"/>
+                <variable name="usuarioMinuta" mapped-name="textAlert:usuarioMinuta" access="read,write"/>
+                <variable name="minuta" mapped-name="textEditAndAttachmentSignature:minuta" access="read,write"/>
+                <variable name="minutarEmLote" mapped-name="minutarLote:minutarEmLote" access="read"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: ModeloDocumento_listView
+Label: Criar modelo de documento
+Tipo: Página
+
+Variável: usuarioMinuta
+Label: Usuário que minutou: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="Elaboração de cálculo - Assinar" name="Assinar"/>
+        <transition to="Descartar documento" name="Encaminhar para análise da secretaria"/>
+        <transition to="Homologar movimentos temporários" name="Homologar movimentos temporários">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Elaboração de cálculo" name="Nó de Desvio - Elaboração de cálculo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Elaboração de cálculo - Revisar" name="Revisar"/>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Homologar movimentos temporários')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos', 'Homologar movimentos temporários, Encaminhar para análise da secretaria')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds','57')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', 'true')}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="Elaboração de cálculo - Assinar">
+        <task name="Elaboração de cálculo - Assinar" swimlane="solicitante" priority="4">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="ModeloDocumento_listView" mapped-name="page:ModeloDocumento_listView" access="read,write"/>
+                <variable name="usuarioMinuta" mapped-name="textAlert:usuarioMinuta" access="read,write"/>
+                <variable name="minuta" mapped-name="textEditAndAttachmentSignature:minuta" access="read,write"/>
+                <variable name="minutarEmLote" mapped-name="minutarLote:minutarEmLote" access="read"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: ModeloDocumento_listView
+Label: Criar modelo de documento
+Tipo: Página
+
+Variável: usuarioMinuta
+Label: Usuário que minutou: #{tramitacaoProcessualService.recuperaVariavel('usuarioMinuta')}
+Tipo: Aviso]]></description>
+        <transition to="Elaboração de cálculo - Corrigir" name="Corrigir"/>
+        <transition to="Descartar documento" name="Encaminhar para análise da secretaria"/>
+        <transition to="Homologar movimentos temporários" name="Homologar movimentos temporários">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Elaboração de cálculo" name="Nó de Desvio - Elaboração de cálculo">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('usuarioMinuta', not empty processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() ? processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioAlteracao() : processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).getNomeUsuarioInclusao())}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{true}')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Homologar movimentos temporários')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos', 'Homologar movimentos temporários, Encaminhar para análise da secretaria')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds','57')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', 'true')}"/>
+        </event>
+    </task-node>
+    <node name="Homologar movimentos temporários">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{lancadorMovimentosService.lancarMovimentosTemporariosAssociandoAoDocumento(processInstance, processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')))}"/>
+        </event>
+    </node>
+    <node name="Descartar documento">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{processoDocumentoManager.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+            <action expression="#{miniPacService.apagarVariaveisMiniPacContexto()}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('usuarioMinuta')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('condicaoLancamentoMovimentosTemporario')}"/>
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'ANSEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Elaboração de cálculo">
+        <task name="Nó de Desvio - Elaboração de cálculo" swimlane="Nó de Desvio - Elaboração de cálculo" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="Elaboração de cálculo - Minutar" name="Elaboração de cálculo - Minutar"/>
+        <transition to="Elaboração de cálculo - Revisar" name="Elaboração de cálculo - Revisar"/>
+        <transition to="Elaboração de cálculo - Corrigir" name="Elaboração de cálculo - Corrigir"/>
+        <transition to="Elaboração de cálculo - Assinar" name="Elaboração de cálculo - Assinar"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>
