@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Fluxo Inicial">
+    <description><![CDATA[Código: INICIAL]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - Fluxo Inicial">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('4738:1')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" priority="3"/>
+        <transition to="Redistribuição?" name="Redistribuição?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:redistribuido') ? 'Testa competência' : 'Iniciar verificação do grupo dossiê'}" name="Redistribuição?">
+        <transition to="Iniciar verificação do grupo dossiê" name="Iniciar verificação do grupo dossiê"/>
+        <transition to="Testa competência" name="Testa competência"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:redistribuido')}"/>
+        </event>
+    </decision>
+    <node name="Iniciar verificação do grupo dossiê">
+        <transition to="Tem situação andamento?" name="Tem situação andamento?"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'VERASSGRUPDOSS')}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.temSituacao('jus:andamento') ? 'Testa competência' : 'Atribuir situação em andamento'}" name="Tem situação andamento?">
+        <transition to="Atribuir situação em andamento" name="Atribuir situação em andamento"/>
+        <transition to="Testa competência" name="Testa competência"/>
+    </decision>
+    <node name="Atribuir situação em andamento">
+        <transition to="Testa competência" name="Testa competência"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:andamento')}"/>
+        </event>
+    </node>
+    <decision expression="#{collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('jef:fluxo:competencias')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia) ? 'Iniciar fluxo do juizado especial federal' : (collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:outras')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia) ? 'Iniciar fluxo do juízo 4.0' : (collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia) ? 'Iniciar fluxo de triagem do cejusc do jef' : 'Nó de desvio'))}" name="Testa competência">
+        <transition to="Iniciar fluxo do juizado especial federal" name="Iniciar fluxo do juizado especial federal"/>
+        <transition to="Iniciar fluxo do juízo 4.0" name="Iniciar fluxo do juízo 4.0"/>
+        <transition to="Nó de Desvio - Fluxo Inicial" name="Nó de desvio"/>
+    </decision>
+    <node name="Iniciar fluxo do juizado especial federal">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_TRIAGIN')}"/>
+        </event>
+    </node>
+    <node name="Iniciar fluxo de triagem do cejusc do jef">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_TRIAGINCEJUSC')}"/>
+        </event>
+    </node>
+    <node name="Iniciar fluxo do juízo 4.0">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'TRIAIN')}"/>
+        </event>
+    </node>
+    <process-state name="Juizado Especial Federal">
+        <sub-process name="[JEF] Juizado Especial Federal" binding="late"/>
+        <transition to="Término" name="Término"/>
+    </process-state>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Fluxo Inicial">
+        <task name="Nó de Desvio - Fluxo Inicial" swimlane="Nó de Desvio - Fluxo Inicial" priority="3">
+            <controller>
+                <variable name="advertencia" mapped-name="textMessage:advertencia" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: advertencia
+Label: Erro ao identificar a competência
+Tipo: Aviso Customizado]]></description>
+        <transition to="Término" name="Término">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>

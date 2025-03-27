@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Intimar Automaticamente para Contrarrazões">
+    <description><![CDATA[Este fluxo intima os polos ativo e passivo do processo caso algum representante destes polos junte um recurso ordinário quando o processo estiver aguardando o prazo para recurso.
+
+Para o funcionamento adequado deste fluxo, é necessário que a variável jef:dataEntradaControlarPrazo esteja configurada com a data em que o processo entrou no fluxo Controlar Prazo.]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Nó de Desvio - [JEF] Intimar Automaticamente para Contrarrazões">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469')}"/>
+    </swimlane>
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="[JEF] Recuperar documentos assinados" name="Recuperar documentos assinados"/>
+    </start-state>  
+    <!-- NODES -->
+    <node name="[JEF] Recuperar documentos assinados">
+        <transition to="[JEF] Recuperar os polos que peticionaram" name="Recuperar os polos que peticionaram"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:documentos',entityManager.createNativeQuery(&quot;SELECT id_processo_documento FROM tb_processo_documento WHERE id_tipo_processo_documento IN (&quot;.concat(tramitacaoProcessualService.recuperaVariavel('ic:idsTiposDocumentos')).concat(&quot;) AND id_processo = :idProcesso and dt_juntada &gt;= :dtJuntada&quot;)).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('dtJuntada',tramitacaoProcessualService.recuperaVariavel('ic:dataJuntada')).getResultList())}"/>
+        </event>
+    </node>
+    <node name="[JEF] Recuperar os polos que peticionaram">
+        <transition to="[JEF] Separação para intimar os polos" name="Separação para intimar os polos"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:polos',tramitacaoProcessualService.recuperaVariavel('ic:documentos').{idDoc | documentoJudicialService.obterOrigemUsuarioJuntada(idDoc) == 'PA' ? 'A' : 'P'})}"/>
+        </event>
+    </node>
+    <fork name="[JEF] Separação para intimar os polos">
+        <transition to="[JEF] Polo ativo peticionou?" name="Polo ativo peticionou?"/>
+        <transition to="[JEF] Polo passivo peticionou?" name="Polo passivo peticionou?"/>
+    </fork>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('ic:polos').contains('A') ? 'Inicializar lista de documentos do polo ativo' : 'Junção após intimação dos polos'}" name="[JEF] Polo ativo peticionou?">
+        <transition to="[JEF] Inicializar lista de documentos do polo ativo" name="Inicializar lista de documentos do polo ativo"/>
+        <transition to="[JEF] Junção após intimação dos polos" name="Junção após intimação dos polos"/>
+    </decision>
+    <node name="[JEF] Inicializar lista de documentos do polo ativo">
+        <transition to="[JEF] Juntar intimação de contrarrazão para o polo passivo" name="Juntar intimação de contrarrazão para o polo passivo"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:listaDocumentoAtivo','')}"/>
+            <action expression="#{entityManager.createNativeQuery(&quot;SELECT pd.id_processo_documento || ' - ' || pd.ds_processo_documento || ' (juntado por ' || pd.ds_nome_usuario_juntada || ')&lt;br&gt;' FROM tb_processo_documento pd INNER JOIN (tb_processo_parte pp LEFT JOIN tb_pessoa_procuradoria pb on pp.id_procuradoria = pb.id_procuradoria) ON pd.id_processo = pp.id_processo_trf WHERE pd.id_processo = :idProcesso AND pd.id_tipo_processo_documento IN (&quot;.concat(tramitacaoProcessualService.recuperaVariavel('ic:idsTiposDocumentos')).concat(&quot;) AND pd.dt_juntada &gt;= :dtJuntada AND pp.in_participacao = :inParticipacao AND (pd.id_usuario_juntada = pp.id_pessoa OR pd.id_usuario_juntada = pb.id_pessoa)&quot;)).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('dtJuntada',tramitacaoProcessualService.recuperaVariavel('ic:dataJuntada')).setParameter('inParticipacao', 'A').getResultList().{nome | tramitacaoProcessualService.gravaVariavel('ic:listaDocumentoAtivo',tramitacaoProcessualService.recuperaVariavel('ic:listaDocumentoAtivo').concat(nome))}}"/>
+        </event>
+    </node>
+    <node name="[JEF] Juntar intimação de contrarrazão para o polo passivo">
+        <transition to="[JEF] Intimar o polo passivo para contrarrazão" name="Intimar o polo passivo para contrarrazão"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:intimacaoContrarrazaoPassivo', documentoJudicialService.gerarMinuta(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'),null,null,217,84))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('ic:intimacaoContrarrazaoPassivo'),null)}"/>
+        </event>
+    </node>
+    <decision expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','D',tramitacaoProcessualService.recuperaVariavel('ic:prazo'), processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('ic:intimacaoContrarrazaoPassivo'))) ? 'Junção após intimação dos polos' : 'Junção após intimação dos polos'}" name="[JEF] Intimar o polo passivo para contrarrazão">
+        <transition to="[JEF] Junção após intimação dos polos" name="Junção após intimação dos polos"/>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('ic:polos').contains('P') ? 'Inicializar lista de documentos do polo passivo' : 'Junção após intimação dos polos'}" name="[JEF] Polo passivo peticionou?">
+        <transition to="[JEF] Inicializar lista de documentos do polo passivo" name="Inicializar lista de documentos do polo passivo"/>
+        <transition to="[JEF] Junção após intimação dos polos" name="Junção após intimação dos polos"/>
+    </decision>
+    <node name="[JEF] Inicializar lista de documentos do polo passivo">
+        <transition to="[JEF] Juntar intimação de contrarrazão para o polo ativo" name="Juntar intimação de contrarrazão para o polo ativo"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:listaDocumentoPassivo','')}"/>
+            <action expression="#{entityManager.createNativeQuery(&quot;SELECT pd.id_processo_documento || ' - ' || pd.ds_processo_documento || ' (juntado por ' || pd.ds_nome_usuario_juntada || ')&lt;br&gt;' FROM tb_processo_documento pd INNER JOIN (tb_processo_parte pp LEFT JOIN tb_pessoa_procuradoria pb on pp.id_procuradoria = pb.id_procuradoria) ON pd.id_processo = pp.id_processo_trf WHERE pd.id_processo = :idProcesso AND pd.id_tipo_processo_documento IN (&quot;.concat(tramitacaoProcessualService.recuperaVariavel('ic:idsTiposDocumentos')).concat(&quot;) AND pd.dt_juntada &gt;= :dtJuntada AND pp.in_participacao = :inParticipacao AND (pd.id_usuario_juntada = pp.id_pessoa OR pd.id_usuario_juntada = pb.id_pessoa)&quot;)).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('dtJuntada',tramitacaoProcessualService.recuperaVariavel('ic:dataJuntada')).setParameter('inParticipacao', 'P').getResultList().{nome | tramitacaoProcessualService.gravaVariavel('ic:listaDocumentoPassivo',tramitacaoProcessualService.recuperaVariavel('ic:listaDocumentoPassivo').concat(nome))}}"/>
+        </event>
+    </node>
+    <node name="[JEF] Juntar intimação de contrarrazão para o polo ativo">
+        <transition to="[JEF] Intimar o polo ativo para contrarrazão" name="Intimar o polo ativo para contrarrazão"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:intimacaoContrarrazaoAtivo', documentoJudicialService.gerarMinuta(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo'),null,null,217,83))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('ic:intimacaoContrarrazaoAtivo'),null)}"/>
+        </event>
+    </node>
+    <decision expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','D',tramitacaoProcessualService.recuperaVariavel('ic:prazo'), processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('ic:intimacaoContrarrazaoAtivo'))) ? 'Junção após intimação dos polos' : 'Junção após intimação dos polos'}" name="[JEF] Intimar o polo ativo para contrarrazão">
+        <transition to="[JEF] Junção após intimação dos polos" name="Junção após intimação dos polos"/>
+    </decision>
+    <join name="[JEF] Junção após intimação dos polos">
+        <transition to="[JEF] Apagar variáveis" name="Apagar variáveis"/>
+    </join>
+    <node name="[JEF] Apagar variáveis">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:polos')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:prazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:documentos')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:dataJuntada')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:idsTiposDocumentos')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:listaDocumentoAtivo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:listaDocumentoPassivo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:intimacaoContrarrazaoAtivo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ic:intimacaoContrarrazaoPassivo')}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Intimar Automaticamente para Contrarrazões">
+        <task name="Nó de Desvio - [JEF] Intimar Automaticamente para Contrarrazões" swimlane="Nó de Desvio - [JEF] Intimar Automaticamente para Contrarrazões" priority="3">
+            <controller/>
+        </task>
+        <transition to="Término" name="Término"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>
