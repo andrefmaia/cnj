@@ -1,0 +1,2037 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Juizado Especial Federal">
+    <description><![CDATA[Código: JEF]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Secretaria e Gabinete">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1,9:5945,9:5197,10:5947')}"/>
+    </swimlane>
+    <swimlane name="Audiências">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('8391:1470,9:1469,10:1338,10:5483,4738:1,9:5945,9:5197,10:5947')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="[JEF] Assunto perícia ou audiência?" name="Assunto perícia ou audiência?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{tramitacaoProcessualService.temAssuntoDoGrupo('PER') ? 'Análise inicial - Perícia' : (tramitacaoProcessualService.temAssuntoDoGrupo('AUD') ? 'Análise inicial - Audiência' : 'Análise inicial')}" name="[JEF] Assunto perícia ou audiência?">
+        <transition to="[JEF] Análise inicial - Audiência" name="Análise inicial - Audiência"/>
+        <transition to="[JEF] Análise inicial" name="Análise inicial"/>
+        <transition to="[JEF] Análise inicial - Perícia" name="Análise inicial - Perícia"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Análise inicial - Perícia">
+        <task name="[JEF] Análise inicial - Perícia" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" mapped-name="frame:Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" access="read,write"/>
+                <variable name="analiseInicial" mapped-name="textEditAndAttachmentSignature:analiseInicial" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial - Audiência"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Citar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para decisão"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para despacho"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para julgamento"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão urgente"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar audiência"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar perícia"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Emendar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Minutar documentos"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Expedição via sistema?" name="Redirecionar para análise inicial perícia">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','57,60,65,69,150,167,170,171,172')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Redirecionar para análise inicial perícia')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Encaminhar para análise da secretaria, Conclusão urgente, Conclusão para decisão, Conclusão para despacho, Conclusão para julgamento, Prevenção, Preparar ato de comunicação, Designar perícia, Designar audiência, Controlar prazos da contestação, Controlar prazos da emenda, Controlar prazos, Saída de exceção, Análise inicial, Análise inicial - Audiência, Emendar - Controle automático, Citar - Controle automático, Minutar documentos, Redirecionar para análise inicial perícia')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:pericia:ocultarDadosProcesso',true)}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Análise inicial - Audiência">
+        <task name="[JEF] Análise inicial - Audiência" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="Processo_Fluxo_abaDesignarAudiencia" mapped-name="frame:Processo_Fluxo_abaDesignarAudiencia" access="read,write"/>
+                <variable name="analiseInicial" mapped-name="textEditAndAttachmentSignature:analiseInicial" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial - Perícia"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Citar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para decisão"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para despacho"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para julgamento"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão urgente"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar audiência"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar perícia"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Emendar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Encaminhar para análise da secretaria"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Minutar documentos"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Expedição via sistema?" name="Redirecionar para análise inicial audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','57,60,65,69,150,167,170,171,172')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Redirecionar para análise inicial audiência')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Encaminhar para análise da secretaria, Designar perícia, Conclusão urgente, Conclusão para decisão, Conclusão para despacho, Conclusão para julgamento, Prevenção, Preparar ato de comunicação, Designar audiência, Controlar prazos da contestação, Controlar prazos da emenda, Controlar prazos, Saída de exceção, Análise inicial, Análise inicial - Perícia, Emendar - Controle automático, Citar - Controle automático, Minutar documentos, Redirecionar para análise inicial audiência')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDadosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:ocultarDocumentosProcesso', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:audiencia:permitirDesignarMultiplas', true)}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Análise inicial">
+        <task name="[JEF] Análise inicial" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarImpedimentoSuspeicao" mapped-name="frame:Processo_Fluxo_visualizarImpedimentoSuspeicao" access="read,write"/>
+                <variable name="analiseInicial" mapped-name="textEditAndAttachmentSignature:analiseInicial" access="read,write"/>
+                <variable name="miniPac" mapped-name="miniPAC:miniPac" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial - Audiência"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Análise inicial - Perícia"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Citar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para decisão"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para despacho"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão para julgamento"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Conclusão urgente"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar audiência"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Designar perícia"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Emendar - Controle automático"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Encaminhar para análise da secretaria"/>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Minutar documentos"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Descartar documento da análise inicial" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Expedição via sistema?" name="Redirecionar para análise inicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','57,60,65,69,150,167,170,171,172')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('prepararAto:meiosComunicacoes','E')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Redirecionar para análise inicial')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Encaminhar para análise da secretaria, Designar perícia, Conclusão urgente, Conclusão para decisão, Conclusão para despacho, Conclusão para julgamento, Prevenção, Preparar ato de comunicação, Designar audiência, Controlar prazos da contestação, Controlar prazos da contestação, Controlar prazos da emenda, Controlar prazos, Saída de exceção, Análise inicial - Perícia, Análise inicial - Audiência, Emendar - Controle automático, Citar - Controle automático, Minutar documentos, Redirecionar para análise inicial')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saida')}" name="[JEF] Descartar documento da análise inicial">
+        <transition to="[JEF] Análise inicial" name="Análise inicial"/>
+        <transition to="[JEF] Análise inicial - Audiência" name="Análise inicial - Audiência"/>
+        <transition to="[JEF] Análise inicial - Perícia" name="Análise inicial - Perícia"/>
+        <transition to="Incluir no fluxo de intimação para contestação" name="Citar - Controle automático"/>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Designar perícia"/>
+        <transition to="Incluir no fluxo de intimação para emendar a inicial" name="Emendar - Controle automático"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de outros documentos" name="Minutar documentos"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{miniPacService.apagarVariaveisMiniPacContexto()}"/>
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{processoDocumentoManager.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saida')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('saida', jbpmUtil.getCurrentTransition().getName())}"/>
+        </event>
+    </decision>
+    <decision expression="#{comunicacaoProcessualAction.getExpedientesEletronico().size() &gt; 0 ? 'Encaminhar via sistema' : 'Redirecionar para análise correspondente'}" name="[JEF] Expedição via sistema?">
+        <transition to="[JEF] Encaminhar via sistema" name="Encaminhar via sistema"/>
+        <transition to="[JEF] Redirecionar para análise correspondente" name="Redirecionar para análise correspondente"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('saida', jbpmUtil.getCurrentTransition().getName())}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Encaminhar via sistema">
+        <transition to="[JEF] Redirecionar para análise correspondente" name="Redirecionar para análise correspondente"/>
+        <event type="node-leave">
+            <action name="upd" expression="#{comunicacaoProcessualAction.enviarExpedientesLancarMovimentos('E', 'processoExpedienteAtual','#{preencherMovimento.deCodigo(60).associarAoDocumento(processoExpedienteAtual.processoDocumentoVinculadoExpediente != null ? processoExpedienteAtual.processoDocumentoVinculadoExpediente : processoExpedienteAtual.processoDocumento).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(80).lancarMovimento()}')}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saida')}" name="[JEF] Redirecionar para análise correspondente">
+        <transition to="[JEF] Análise inicial - Perícia" name="Redirecionar para análise inicial perícia"/>
+        <transition to="[JEF] Análise inicial - Audiência" name="Redirecionar para análise inicial audiência"/>
+        <transition to="[JEF] Análise inicial" name="Redirecionar para análise inicial"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saida')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar prazos da emenda">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da emenda" name="Testa saída controle da emenda"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da emenda', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da emenda', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para emendar">
+        <sub-process name="[JEF] Fluxo de controle de prazo" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da emenda" name="Testa saída controlar prazo da emenda"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:descricaoEtiqueta','Controle de prazo para emendar')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') or tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Encaminhar para análise da secretaria' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : 'Análise do fim do prazo da emenda')}" name="[JEF] Testa saída controlar prazo da emenda">
+        <transition to="[JEF] Análise do fim do prazo da emenda" name="Análise do fim do prazo da emenda"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar prazo para contestação">
+        <sub-process name="[JEF] Fluxo de controle de prazo" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da contestação" name="Testa saída controlar prazo da contestação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:descricaoEtiqueta','Controle de prazo para contestação')}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazos da contestação">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da contestação" name="Testa saída controlar prazo da contestação"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da contestação', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da contestação', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') or tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Incluir no fluxo de análise da secretaria' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : 'Análise do fim do prazo da contestação')}" name="[JEF] Testa saída controlar prazo da contestação">
+        <transition to="[JEF] Análise do fim do prazo da contestação" name="Análise do fim do prazo da contestação"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Emendar - Controle automático">
+        <task name="[JEF] Emendar - Controle automático" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="emenda" mapped-name="textEditAndAttachmentSignature:emenda" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Cancelar emenda ou citação automática" name="Cancelar"/>
+        <transition to="[JEF] Pode intimar para emenda via sistema?" name="Pode intimar para emenda via sistema automaticamente?">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','263')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Pode intimar para emenda via sistema automaticamente?')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Pode intimar para emenda via sistema automaticamente?, Cancelar')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', documentoJudicialService.obterProcessoDocumento(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,263,usuarioService.getUsuarioLogado().getIdUsuario(),usuarioService.getLocalizacaoAtual().getLocalizacaoFisica().getIdLocalizacao(),usuarioService.getPapelLocalizacaoAtual().getIdPapel(),3350).getIdProcessoDocumento())}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Citar - Controle automático">
+        <task name="[JEF] Citar - Controle automático" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="citacao" mapped-name="textEditAndAttachmentSignature:citacao" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Cancelar emenda ou citação automática" name="Cancelar"/>
+        <transition to="[JEF] Pode intimar para contestação via sistema?" name="Pode intimar para contestação via sistema automaticamente?">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','57,264')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Pode intimar para contestação via sistema automaticamente?')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Pode intimar para contestação via sistema automaticamente?, Cancelar')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('minutaEmElaboracao', documentoJudicialService.obterProcessoDocumento(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,57,usuarioService.getUsuarioLogado().getIdUsuario(),usuarioService.getLocalizacaoAtual().getLocalizacaoFisica().getIdLocalizacao(),usuarioService.getPapelLocalizacaoAtual().getIdPapel(),3349).getIdProcessoDocumento())}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Cancelar emenda ou citação automática">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:poloIntimacao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:prazoIntimacao')}"/>
+            <action expression="#{documentoJudicialService.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+        </event>
+    </node>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A') ? 'Intimar polo ativo para emenda' : 'Preparar ato de comunicação'}" name="[JEF] Pode intimar para emenda via sistema?">
+        <transition to="[JEF] Intimar polo ativo para emenda" name="Intimar polo ativo para emenda"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </decision>
+    <decision expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','D',15,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')) ? 'Controlar prazo para emendar automático' : 'Controlar prazo para emendar automático'}" name="[JEF] Intimar polo ativo para emenda">
+        <transition to="Incluir no fluxo de controle de prazo para emendar" name="Controlar prazo para emendar automático"/>
+    </decision>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'P') ? 'Intimar polo passivo para contestação' : 'Preparar ato de comunicação'}" name="[JEF] Pode intimar para contestação via sistema?">
+        <transition to="[JEF] Intimar polo passivo para contestação" name="Intimar polo passivo para contestação"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </decision>
+    <decision expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','D',30,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')) ? 'Controlar prazo para contestação automático' : 'Controlar prazo para contestação automático'}" name="[JEF] Intimar polo passivo para contestação">
+        <transition to="Incluir no fluxo de controle de prazo para contestação" name="Controlar prazo para contestação automático"/>
+    </decision>
+    <process-state name="[JEF] Controlar prazos da emenda - Automático">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da emenda automática" name="Testa saída controlar prazo da emenda automática"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da emenda - Automático', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da emenda - Automático', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para emendar automático">
+        <sub-process name="[JEF] Fluxo de controle de prazo" binding="late"/>
+        <transition to="[JEF] Testa saída da controlar prazo para emenda automático" name="Testa saída da controlar prazo para emenda automático"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:descricaoEtiqueta','Controle de prazo para emendar automático')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : (processoDocumentoManager.getDocumentosAssinadosPorAdvogadosOuProcuradoresBy(tramitacaoProcessualService.recuperaVariavel('processo')).{doc | doc.dataJuntada.compareTo(tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo')) &gt;= 0}.contains(true) ? 'Expediente da emenda com manifestação' : 'Ato do magistrado - Sem mérito'))}" name="[JEF] Testa saída controlar prazo da emenda automática">
+        <transition to="Incluir no fluxo de elaboração de sentença de extinção" name="Ato do magistrado - Sem mérito"/>
+        <transition to="[JEF] Expediente da emenda com manifestação" name="Expediente da emenda com manifestação"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Nó de desvio' : (entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExistsManifestacao')).setParameter('idsExpedientesEmControle',tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientes')).getSingleResult() ? 'Expediente da emenda com manifestação' : 'Ato do magistrado - Sem mérito')}" name="[JEF] Testa saída da controlar prazo para emenda automático">
+        <transition to="[JEF] Expediente da emenda com manifestação" name="Expediente da emenda com manifestação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de sentença de extinção" name="Ato do magistrado - Sem mérito"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar prazos da contestação - Automático">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da contestação automático" name="Testa saída controlar prazo da contestação automático"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da contestação - Automático', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo da contestação - Automático', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para contestação automático">
+        <sub-process name="[JEF] Fluxo de controle de prazo" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo da contestação automático" name="Testa saída controlar prazo da contestação automático"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:descricaoEtiqueta','Controle de prazo para contetação automática')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') or tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : 'Conclusão para julgamento')}" name="[JEF] Testa saída controlar prazo da contestação automático">
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Designar audiência">
+        <sub-process name="[JEF] Audiência" binding="late"/>
+        <transition to="[JEF] Testa saída designar audiência" name="Testa saída Designar audiência"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'audienciaRealizada' ? 'Audiência realizada' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'sentenca' ? 'Conclusão para julgamento' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'despacho' ? 'Conclusão para despacho' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'decisao' ? 'Conclusão para decisão' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'urgente' ? 'Conclusão urgente' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'audiencia' ? 'Designar audiência' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'comunicacao' ? 'Preparar ato de comunicação' : 'Nó de desvio'))))))}" name="[JEF] Testa saída designar audiência">
+        <transition to="[JEF] Audiência - Realizada" name="Audiência realizada"/>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saidaAudiencia')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Audiência - Realizada">
+        <task name="[JEF] Audiência - Realizada" swimlane="Audiências" priority="3"/>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de sentença da audiência" name="Conclusão para julgamento - audiência"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Designar perícia"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+    </task-node>
+    <process-state name="[JEF] Controlar prazos do recurso">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo do recurso" name="Testa saída controlar prazo do recurso"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo do recurso', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo do recurso', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para recurso">
+        <sub-process name="[JEF] Fluxo de controle de prazo para recurso" binding="late"/>
+        <transition to="[JEF] Testa saída de controlar prazo para recurso" name="Testa saída de controlar prazo para recurso"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : (processoDocumentoManager.getDocumentosAssinadosPorAdvogadosOuProcuradoresBy(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo')).{doc | doc.dataJuntada.compareTo(tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo')) &gt;= 0}.contains(true) ? 'Verificar manifestação recurso' : 'Juntar certidão de trânsito em julgado'))}" name="[JEF] Testa saída controlar prazo do recurso">
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="[JEF] Juntar certidão de trânsito em julgado" name="Juntar certidão de trânsito em julgado"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="[JEF] Verificar manifestação recurso" name="Verificar manifestação recurso"/>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Nó de desvio' : 'Incluir no fluxo de análise de manifestação de recurso'}" name="[JEF] Testa saída de controlar prazo para recurso">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de análise de manifestação de recurso" name="Incluir no fluxo de análise de manifestação de recurso"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <decision expression="#{processoDocumentoDAO.getDocumentosPorTipoAssinadosApos(tramitacaoProcessualService.recuperaProcesso(),tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'),tipoProcessoDocumentoDAO.findByCodigoDocumento('69',true).idTipoProcessoDocumento, tipoProcessoDocumentoDAO.findByCodigoDocumento('68',true).idTipoProcessoDocumento).size() &gt; 0 ? 'Pode intimar para contrarrazão via sistema?' : 'Verificar manifestação embargos'}" name="[JEF] Verificar manifestação recurso">
+        <transition to="[JEF] Verificar manifestação embargos" name="Verificar manifestação embargos"/>
+        <transition to="[JEF] Pode intimar para contrarrazão via sistema?" name="Pode intimar para contrarrazão via sistema?"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Expediente de recurso com manifestação">
+        <task name="[JEF] Expediente de recurso com manifestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de certificação de trânsito em julgado" name="Trânsito em julgado"/>
+        <event type="node-enter">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('pje:fluxo:registrociencia:meios','E,C,M,T,S,G')}"/>
+        </event>
+    </task-node>
+    <decision expression="#{processoDocumentoDAO.getDocumentosPorTipoAssinadosApos(tramitacaoProcessualService.recuperaProcesso(),tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'),tipoProcessoDocumentoDAO.findByCodigoDocumento('69',true).idTipoProcessoDocumento, tipoProcessoDocumentoDAO.findByCodigoDocumento('68',true).idTipoProcessoDocumento).{doc | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), (documentoJudicialService.obterOrigemUsuarioJuntada(doc.idProcessoDocumento) == 'PA' ? 'P' : 'A'))}.contains(false) ? 'Preparar ato de comunicação' : 'Intimar para contrarrazões'}" name="[JEF] Pode intimar para contrarrazão via sistema?">
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Intimar acerca dos recursos" name="Intimar para contrarrazões"/>
+    </decision>
+    <decision expression="#{entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectManifestacaoPorTipo')).setParameter('idsExpedientesEmControle',tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesRecurso')).setParameter('idsTipoManifestacao',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposRecurso'))).getResultList().{id | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), (documentoJudicialService.obterOrigemUsuarioJuntada(id) == 'PA' ? 'P' : 'A'))}.contains(false) ? 'Preparar ato de comunicação' : 'Intimar para contrarrazões do recurso'}" name="[JEF] Pode intimar para contrarrazões do recurso?">
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Intimar para contrarrazões do recurso" name="Intimar para contrarrazões do recurso"/>
+    </decision>
+    <process-state name="[JEF] Intimar acerca dos recursos">
+        <sub-process name="[JEF] Intimar Automaticamente para Contrarrazões" binding="late"/>
+        <transition to="[JEF] Controlar prazo para contrarrazões" name="Controlar prazo para contrarrazões"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:prazo',10)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:dataJuntada',tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:idsTiposDocumentos','207,47')}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Intimar para contrarrazões do recurso">
+        <sub-process name="[JEF] Fluxo de intimação para contrarrazões" binding="late"/>
+        <transition to="[JEF] Controlar prazo para contrarrazões" name="Controlar prazo para contrarrazões"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:prazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsDocumentos')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:prazo',10)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsDocumentos',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposRecurso')))}"/>
+        </event>
+    </process-state>
+    <decision expression="#{processoDocumentoDAO.getDocumentosPorTipoAssinadosApos(tramitacaoProcessualService.recuperaProcesso(),tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'),tipoProcessoDocumentoDAO.findByCodigoDocumento('49',true).idTipoProcessoDocumento).size() &gt; 0 ? 'Pode intimar acerca dos embargos via sistema?' : 'Expediente de recurso com manifestação'}" name="[JEF] Verificar manifestação embargos">
+        <transition to="[JEF] Expediente de recurso com manifestação" name="Expediente de recurso com manifestação"/>
+        <transition to="[JEF] Pode intimar acerca dos embargos via sistema?" name="Pode intimar acerca dos embargos via sistema?"/>
+    </decision>
+    <decision expression="#{processoDocumentoDAO.getDocumentosPorTipoAssinadosApos(tramitacaoProcessualService.recuperaProcesso(),tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'),tipoProcessoDocumentoDAO.findByCodigoDocumento('49',true).idTipoProcessoDocumento).{doc | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), (documentoJudicialService.obterOrigemUsuarioJuntada(doc.idProcessoDocumento) == 'PA' ? 'P' : 'A'))}.contains(false) ? 'Preparar ato de comunicação' : 'Intimar acerca dos embargos'}" name="[JEF] Pode intimar acerca dos embargos via sistema?">
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Intimar acerca dos embargos" name="Intimar acerca dos embargos"/>
+    </decision>
+    <decision expression="#{entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectManifestacaoPorTipo')).setParameter('idsExpedientesEmControle',tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesRecurso')).setParameter('idsTipoManifestacao',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('idTipoDocumentoEmbargosDeclaracao'))).getResultList().{id | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), (documentoJudicialService.obterOrigemUsuarioJuntada(id) == 'PA' ? 'P' : 'A'))}.contains(false) ? 'Preparar ato de comunicação' : 'Intimar para contrarrazões dos embargos'}" name="[JEF] Pode intimar para contrarrazões dos embargos?">
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Intimar para contrarrazões dos embargos" name="Intimar para contrarrazões dos embargos"/>
+    </decision>
+    <process-state name="[JEF] Intimar acerca dos embargos">
+        <sub-process name="[JEF] Intimar Automaticamente para Contrarrazões" binding="late"/>
+        <transition to="[JEF] Controlar prazo para contrarrazões dos embargos" name="Controlar prazo para contrarrazões dos embargos"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:prazo',5)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:dataJuntada',tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ic:idsTiposDocumentos','23')}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Intimar para contrarrazões dos embargos">
+        <sub-process name="[JEF] Fluxo de intimação para contrarrazões" binding="late"/>
+        <transition to="[JEF] Controlar prazo para contrarrazões dos embargos" name="Controlar prazo para contrarrazões dos embargos"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:prazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsDocumentos')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('contrarrazoesEmbargos')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:prazo',5)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsDocumentos',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('idTipoDocumentoEmbargosDeclaracao')))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('contrarrazoesEmbargos', true)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazos para contrarrazões">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo das contrarrazões" name="Testa saída controlar prazo das contrarrazões"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo para contrarrazão', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo para contrarrazão', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para contrarrazões">
+        <sub-process name="[JEF] Fluxo de controle de prazo para contrarrazões" binding="late"/>
+        <transition to="[JEF] Testa saída de controlar prazo para contrarrazões" name="Testa saída de controlar prazo para contrarrazões"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:descricaoEtiqueta','Controle de prazo para contrarrazões do recurso')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : (processoDocumentoManager.getDocumentosAssinadosPorAdvogadosOuProcuradoresBy(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo')).{doc | doc.dataJuntada.compareTo(tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo')) &gt;= 0 and !doc.tipoProcessoDocumento.codigoDocumento.equals('46')}.contains(true) ? 'Expediente de contrarrazões com manifestação' : 'Remeter para turma recursal'))}" name="[JEF] Testa saída controlar prazo das contrarrazões">
+        <transition to="[JEF] Expediente de contrarrazões com manifestação" name="Expediente de contrarrazões com manifestação"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="[JEF] Remeter para turma recursal" name="Remeter para turma recursal"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Incluir no fluxo de análise da secretaria' : 'Incluir no fluxo de análise de manifestação de contrarrazão do recurso'}" name="[JEF] Testa saída de controlar prazo para contrarrazões">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <transition to="Incluir no fluxo de análise de manifestação de contrarrazão do recurso" name="Incluir no fluxo de análise de manifestação de contrarrazão do recurso"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:temManifestacao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:temDiferenteContrarrazao')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:temManifestacao', not empty tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesContrarrazao') ? entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExistsManifestacao')).setParameter('idsExpedientesEmControle',tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesContrarrazao')).getSingleResult() : false)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:temDiferenteContrarrazao', not empty tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesContrarrazao') ? entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExistsManifestacaoPorTipoDiferente')).setParameter('idsExpedientesEmControle',tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesContrarrazao')).setParameter('idsTipoManifestacao',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('idTipoDocumentoContrarrazoes'))).getSingleResult() : false)}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Expediente de contrarrazões com manifestação">
+        <task name="[JEF] Expediente de contrarrazões com manifestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de remessa para turma recursal" name="Remeter para turma recursal"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('pje:fluxo:registrociencia:meios','E,C,M,T,S,G')}"/>
+        </event>
+    </task-node>
+    <process-state name="[JEF] Remeter para turma recursal">
+        <sub-process name="[JEF] Remessa para Turma Recursal" binding="late"/>
+        <transition to="[JEF] Testa saída da remessa da TR" name="Testa saída da remessa da TR"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cumprirSentenca') ? 'Alterar classe para 12078' : 'Nó de desvio'}" name="[JEF] Testa saída da remessa da TR">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de cumprimento de sentença" name="Alterar classe para 12078"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cumprirSentenca')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar prazos dos embargos de declaração">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo dos embargos" name="Testa saída controle dos embargos"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo dos embargos de declaração', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo dos embargos de declaração', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo para contrarrazões dos embargos">
+        <sub-process name="[JEF] Fluxo de controle de prazo para contrarrazões dos embargos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazo dos embargos" name="Testa saída controlar prazo dos embargos"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:descricaoEtiqueta')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') or tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' : 'Conclusão para julgamento')}" name="[JEF] Testa saída controlar prazo dos embargos">
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Análise do fim do prazo da contestação">
+        <task name="[JEF] Análise do fim do prazo da contestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão para decisão urgente"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Análise do fim do prazo da emenda">
+        <task name="[JEF] Análise do fim do prazo da emenda" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+    </task-node>
+    <process-state name="[JEF] Controlar prazos">
+        <sub-process name="[JEF] Controlar Prazos" binding="late"/>
+        <transition to="[JEF] Testa saída controlar prazos" name="Testa saída controlar prazos"/>
+        <event type="node-leave">
+            <action expression="#{tagService.desvincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:dataEntradaControlarPrazo',dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss.SSS'),'yyyy-MM-dd HH:mm:ss.SSS'))}"/>
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Controle de prazo', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Controlar prazo">
+        <sub-process name="[JEF] Fluxo de controle de prazo" binding="late"/>
+        <transition to="[JEF] Testa saída de controlar prazo" name="Testa saída de controlar prazo"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('cp:semExpediente') ?   'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('cp:semPrazo') ? 'Expediente sem prazo' :(processoDocumentoManager.getDocumentosAssinadosPorAdvogadosOuProcuradoresBy(org.jboss.seam.bpm.processInstance.contextInstance.getVariable('processo')).{doc | doc.dataJuntada.compareTo(tramitacaoProcessualService.recuperaVariavel('jef:dataEntradaControlarPrazo')) &gt;= 0}.contains(true) ? 'Expediente com manifestação' : 'Expediente sem manifestação'))}" name="[JEF] Testa saída controlar prazos">
+        <transition to="[JEF] Expediente com manifestação" name="Expediente com manifestação"/>
+        <transition to="[JEF] Expediente sem manifestação" name="Expediente sem manifestação"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:expedientes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:comPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('cp:semExpediente')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:noDesvio') ? 'Incluir no fluxo de análise da secretaria' : 'Incluir no fluxo de análise de manifestação'}" name="[JEF] Testa saída de controlar prazo">
+        <transition to="Incluir no fluxo de análise de manifestação" name="Incluir no fluxo de análise de manifestação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:noDesvio')}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Encaminhar para análise de laudo">
+        <transition to="[JEF] Designar perícia" name="[JEF] Designar perícia"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('analisarLaudo', true)}"/>
+        </event>
+    </node>
+    <process-state name="[JEF] Designar perícia">
+        <sub-process name="[JEF] Perícia" binding="late"/>
+        <transition to="[JEF] Testa saída perícia" name="Testa saída perícia"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('analisarLaudo')}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saidaPericia') eq 'sentenca' ? 'Conclusão para julgamento' : (tramitacaoProcessualService.recuperaVariavel('saidaPericia') eq 'despacho' ? 'Conclusão para despacho' : (tramitacaoProcessualService.recuperaVariavel('saidaPericia') eq 'decisao' ? 'Conclusão para decisão' : (tramitacaoProcessualService.recuperaVariavel('saidaPericia') eq 'urgente' ? 'Conclusão urgente' : (tramitacaoProcessualService.recuperaVariavel('saidaPericia') eq 'comunicacao' ? 'Preparar ato de comunicação' : 'Nó de desvio'))))}" name="[JEF] Testa saída perícia">
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saidaPericia')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Expediente sem manifestação">
+        <task name="[JEF] Expediente sem manifestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de certificação de trânsito em julgado" name="Trânsito em julgador"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Expediente com manifestação">
+        <task name="[JEF] Expediente com manifestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de certificação de trânsito em julgado" name="Trânsito em julgador"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Expediente da emenda com manifestação">
+        <task name="[JEF] Expediente da emenda com manifestação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de intimação para contestação" name="Citar - Controle automático"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Assinar ato - Sentença sem mérito">
+        <task name="[JEF] Assinar ato - Sentença sem mérito" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Tipo do ato é sentença - Sem mérito?" name="Tipo do ato é sentença - Sem mérito?">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-start">
+            <action expression="#{documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,taskInstance.id,62,3353)}"/>
+            <action expression="#{preencherMovimento.deCodigo('454').associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('minutaEmElaboracao')).lancarMovimentoTemporariamente(processInstance)}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+        </event>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds','62,64,119')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Tipo do ato é sentença - Sem mérito?')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:lancamentoMovimentoObrigatorio',true)}"/>
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Nó de desvio, Tipo do ato é sentença - Sem mérito?')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(51).comComplementoDeCodigo(3).doTipoDominio().preencherComElementoDeCodigo(36).lancarMovimento()}"/>
+        </event>
+    </task-node>
+    <decision expression="#{documentoJudicialService.getDocumento(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')).getTipoProcessoDocumento().getCodigoDocumento().equals('550') ? 'Possui unicamente o evento de indeferimento da PI?' : 'Tem movimento de julgamento em diligência?'}" name="[JEF] Tipo do ato é sentença - Sem mérito?">
+        <transition to="[JEF] Possui unicamente o evento de indeferimento da PI?" name="Possui unicamente o evento de indeferimento da PI?"/>
+        <transition to="[JEF] Tem movimento de julgamento em diligência?" name="Tem movimento de julgamento em diligência?"/>
+    </decision>
+    <decision expression="#{processoEventoManager.temMovimento(tramitacaoProcessualService.recuperaProcesso(),eventoManager.findByCodigoCNJ(11022),dateUtil.adicionarTempoData(dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss'),12,-2)) ? 'Preparar ato de comunicação' : 'Lançar movimento de julgamento em diligência'}" name="[JEF] Tem movimento de julgamento em diligência?">
+        <transition to="[JEF] Lançar movimento de julgamento em diligência" name="Lançar movimento de julgamento em diligência"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+    </decision>
+    <node name="[JEF] Lançar movimento de julgamento em diligência">
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Incluir no fluxo de elaboração de comunicação"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(11022).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')).lancarMovimento()}"/>
+        </event>
+    </node>
+    <decision expression="#{processoEventoDAO.recuperar(processoDocumentoManager.getDocumento(tramitacaoProcessualService.recuperaProcesso(), tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))).size() == 1 and processoEventoDAO.temAlgumMovimento(tramitacaoProcessualService.recuperaVariavel('processo'), dateUtil.adicionarTempoData(dateUtil.stringToDate(dateUtil.getDataAtual('yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss'),13,-5), eventoManager.findByCodigoCNJ(458), eventoManager.findByCodigoCNJ(461), eventoManager.findByCodigoCNJ(459), eventoManager.findByCodigoCNJ(11376), eventoManager.findByCodigoCNJ(11380), eventoManager.findByCodigoCNJ(463), eventoManager.findByCodigoCNJ(11379), eventoManager.findByCodigoCNJ(11378), eventoManager.findByCodigoCNJ(454), eventoManager.findByCodigoCNJ(457), eventoManager.findByCodigoCNJ(12325)) ? 'Pode intimar acerca da sentença de extinção via sistema?' : 'Preparar ato de comunicação'}" name="[JEF] Possui unicamente o evento de indeferimento da PI?">
+        <transition to="[JEF] Pode intimar acerca da sentença de extinção via sistema?" name="Pode intimar acerca da sentença de extinção via sistema?"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+    </decision>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A,P') ? 'Intimar acerca da sentença de extinção via sistema' : 'Pendência de intimação da sentença de extinção'}" name="[JEF] Pode intimar acerca da sentença de extinção via sistema?">
+        <transition to="[JEF] Intimar acerca da sentença de extinção via sistema" name="Intimar acerca da sentença de extinção via sistema"/>
+        <transition to="[JEF] Pendência de intimação da sentença de extinção" name="Pendência de intimação da sentença de extinção"/>
+    </decision>
+    <node name="[JEF] Intimar acerca da sentença de extinção via sistema">
+        <transition to="Incluir no fluxo de arquivamento" name="Incluir no fluxo de arquivamento"/>
+        <event type="node-enter">
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','S',null,tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Pendência de intimação da sentença de extinção">
+        <task name="[JEF] Pendência de intimação da sentença de extinção" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <process-state name="[JEF] Preparar ato judicial">
+        <sub-process name="[JEF] Preparar Ato Judicial" binding="late"/>
+        <transition to="[JEF] Testa saída preparar ato judicial" name="Testa saída preparar ato judicial"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('paj:tipoConclusao')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('paj:tipoConclusao', jbpmUtil.getCurrentTransition().getName())}"/>
+        </event>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('paj:atoNaoAssinado') ? 'Nó de desvio' : 'Existe evento de sobrestamento?'}" name="[JEF] Testa saída preparar ato judicial">
+        <transition to="[JEF] Existe evento de sobrestamento?" name="Existe evento de sobrestamento?"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('paj:atoNaoAssinado')}"/>
+        </event>
+    </decision>
+    <decision expression="#{processoEventoManager.temMovimento(tramitacaoProcessualService.recuperaProcesso(), eventoManager.findByCodigoCNJ(25), null, processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('pje:atoProferido'))) or processoEventoManager.temMovimento(tramitacaoProcessualService.recuperaProcesso(), eventoManager.findByCodigoCNJ(11025), null, processoDocumentoManager.findById(tramitacaoProcessualService.recuperaVariavel('pje:atoProferido'))) ? 'Sobrestamento' : 'Controlar obrigação de fazer?'}" name="[JEF] Existe evento de sobrestamento?">
+        <transition to="[JEF] Controlar obrigação de fazer?" name="Controlar obrigação de fazer?"/>
+        <transition to="Incluir no fluxo de sobrestamento" name="Sobrestamento"/>
+    </decision>
+    <process-state name="[JEF] Sobrestamento">
+        <sub-process name="[JEF] Sobrestamento" binding="late"/>
+        <transition to="[JEF] Analisar fim do sobrestamento" name="Analisar fim do sobrestamento"/>
+    </process-state>
+    <task-node end-tasks="true" name="[JEF] Analisar fim do sobrestamento">
+        <task name="[JEF] Analisar fim do sobrestamento" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Incluir no fluxo de sobrestamento" name="Sobrestar"/>
+    </task-node>
+    <decision expression="#{processoParteExpedienteDAO.recuperaExpedientesNaoFechados(tramitacaoProcessualService.recuperaProcesso()).{ppe | ppe.processoExpediente.processoDocumento.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:atoProferido') or (ppe.processoExpediente.processoDocumentoVinculadoExpediente != null and ppe.processoExpediente.processoDocumentoVinculadoExpediente.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:atoProferido'))}.contains(true) ? 'Tipo do ato é sentença?' : 'Ato do magistrado sem intimação'}" name="[JEF] Existe expediente?">
+        <transition to="[JEF] Ato do magistrado sem intimação" name="Ato do magistrado sem intimação"/>
+        <transition to="[JEF] Tipo do ato é sentença?" name="Tipo do ato é sentença?"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Ato do magistrado sem intimação">
+        <task name="[JEF] Ato do magistrado sem intimação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{documentoJudicialService.getDocumento(tramitacaoProcessualService.recuperaVariavel('pje:atoProferido')).getTipoProcessoDocumento().getCodigoDocumento().equals('550') ? (empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesRecurso'))).getResultList() ? 'Expediente sem prazo' : 'Controlar prazo para recurso') : (empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientes'))).getResultList() ? 'Expediente sem prazo' : 'Controlar prazo')}" name="[JEF] Tipo do ato é sentença?">
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo"/>
+        <transition to="Incluir no fluxo de controle de prazo para recurso" name="Controlar prazo para recurso"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('intimarObrigacaoFazer') and documentoJudicialService.getDocumento(tramitacaoProcessualService.recuperaVariavel('pje:atoProferido')).getTipoProcessoDocumento().getCodigoDocumento().equals('550') ? 'Pode intimar para obrigação de fazer?' : 'Etiquetar para análise da obrigação de fazer?'}" name="[JEF] Controlar obrigação de fazer?">
+        <transition to="[JEF] Pode intimar para obrigação de fazer?" name="Pode intimar para obrigação de fazer?"/>
+        <transition to="[JEF] Etiquetar para análise da obrigação de fazer?" name="Etiquetar para análise da obrigação de fazer?"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('intimarObrigacaoFazer')}"/>
+        </event>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('ehSentenca') and tramitacaoProcessualService.recuperaVariavel('temMovimentoProcedenciaParcialProcedencia') and tramitacaoProcessualService.temAssuntoDoGrupo('PRE') and tramitacaoProcessualService.recuperaVariavel('temINSS') and not tramitacaoProcessualService.recuperaVariavel('jaExisteEtiqueta') ? 'Etiquetar para análise da obrigação de fazer' : 'Existe expediente?'}" name="[JEF] Etiquetar para análise da obrigação de fazer?">
+        <transition to="[JEF] Etiquetar para análise da obrigação de fazer" name="Etiquetar para análise da obrigação de fazer"/>
+        <transition to="[JEF] Existe expediente?" name="Existe expediente?"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('ehSentenca')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('temMovimentoProcedenciaParcialProcedencia')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('temINSS')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jaExisteEtiqueta')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('ehSentenca', documentoJudicialService.getDocumento(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado')).getTipoProcessoDocumento().getCodigoDocumento().equals('550'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('temMovimentoProcedenciaParcialProcedencia', processoEventoDAO.recuperar(documentoJudicialService.getDocumento(tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))).{pe | !(pe.evento.codEvento.equals('220') or pe.evento.codEvento.equals('11878') or pe.evento.codEvento.equals('11879')) and pe.evento.getHierarchy().contains(eventoDAO.findByCodigoCNJ('385'))}.contains(true))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('temINSS', pessoaManager.findByName('INSTITUTO NACIONAL DO SEGURO SOCIAL').{p | processoParteManager.isParte(tramitacaoProcessualService.recuperaProcesso(),p,null)}.contains(true))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jaExisteEtiqueta', entityManager.createNativeQuery(parametroUtil.getParametro('pje:fluxo:selectExistsTag')).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('dsTag', 'Analisar obrigação de fazer').setParameter('idLocalizacao', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao).getSingleResult())}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Etiquetar para análise da obrigação de fazer">
+        <transition to="[JEF] Existe expediente?" name="[JEF] Existe expediente?"/>
+        <event type="node-enter">
+            <action expression="#{tagService.vincularTagProcessoViaFluxo(tramitacaoProcessualService.recuperaProcesso(), 'Analisar obrigação de fazer', tramitacaoProcessualService.recuperaProcesso().orgaoJulgador.localizacao.idLocalizacao, parametroUtil.getUsuarioSistema().idUsuario)}"/>
+        </event>
+    </node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:pendenteIntimacao') ? 'Incluir no fluxo de obrigação de fazer?' : 'Intimar para obrigação de fazer'}" name="[JEF] Pode intimar para obrigação de fazer?">
+        <transition to="[JEF] Incluir no fluxo de obrigação de fazer?" name="Incluir no fluxo de obrigação de fazer?"/>
+        <transition to="[JEF] Intimar para obrigação de fazer" name="Intimar para obrigação de fazer"/>
+        <event type="node-enter">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('jef:processoPartes', entityManager.createQuery(&quot;SELECT pp FROM ProcessoParte pp WHERE pp.processoTrf = :processoTrf AND pp.inSituacao = 'A' AND pp.tipoParte.tipoParte = 'ÓRGÃO DE CUMPRIMENTO' AND pp.inParticipacao = 'T'&quot;).setParameter('processoTrf', tramitacaoProcessualService.recuperaProcesso()).getResultList())}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavel('jef:pendenteIntimacao', empty tramitacaoProcessualService.recuperaVariavel('jef:processoPartes') or tramitacaoProcessualService.recuperaVariavel('jef:processoPartes').{pp | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(pp, false)}.contains(false))}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Intimar para obrigação de fazer">
+        <transition to="[JEF] Incluir no fluxo de obrigação de fazer?" name="Incluir no fluxo de obrigação de fazer?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsPessoa', entityManager.createNativeQuery(&quot;SELECT id_pessoa FROM tb_processo_parte WHERE id_processo_trf = :idProcessoTrf AND in_situacao = 'A' AND id_tipo_parte = (SELECT id_tipo_parte from tb_tipo_parte where ds_tipo_parte = 'ÓRGÃO DE CUMPRIMENTO') AND in_participacao = 'T'&quot;).setParameter('idProcessoTrf', tramitacaoProcessualService.recuperaVariavel('processo')).getResultList())}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:intimacao', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('idTipoDocumentoIntimacaoObrigacaoFazer')).get(0),collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idModeloIntimacaoObrigacaoFazer')).get(0)))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('jef:intimacao'),null)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:pendenteIntimacao',tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa').{id | atoComunicacaoService.intimarDestinatarioEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),id,'D',20, tramitacaoProcessualService.recuperaVariavel('jef:intimacao'))}.contains(false) or empty tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa'))}"/>
+        </event>
+    </node>
+    <decision expression="#{fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Fluxo de obrigação de fazer') or  fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Fluxo de controle de prazo para obrigação de fazer') ? 'Sinalizar intimação para obrigação de fazer' : 'Incluir no fluxo de obrigação de fazer'}" name="[JEF] Incluir no fluxo de obrigação de fazer?">
+        <transition to="[JEF] Incluir no fluxo de obrigação de fazer" name="Incluir no fluxo de obrigação de fazer"/>
+        <transition to="[JEF] Sinalizar intimação para obrigação de fazer" name="Sinalizar intimação para obrigação de fazer"/>
+    </decision>
+    <node name="[JEF] Incluir no fluxo de obrigação de fazer">
+        <transition to="[JEF] Existe expediente?" name="Existe expediente?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:args')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:intimacao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsPessoa')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(),'JEF_FLUX_OBR_FAZ',collectionUtilsPje.stringToMap(tramitacaoProcessualService.recuperaVariavel('jef:pendenteIntimacao') ? 'jef:pendenteIntimacao=true' : 'jef:pendenteIntimacao=false'))}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:pendenteIntimacao')}"/>
+        </event>
+    </node>
+    <node name="[JEF] Sinalizar intimação para obrigação de fazer">
+        <transition to="[JEF] Existe expediente?" name="Existe expediente?"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.recuperaVariavel('jef:pendenteIntimacao') ? processoJudicialService.sinalizarFluxo(tramitacaoProcessualService.recuperaProcesso(), 'pje:fluxo:aguardaIntimacaoObrigacaoFazer', true, true, true, 'jef:pendenteIntimacao=true') : processoJudicialService.sinalizarFluxo(tramitacaoProcessualService.recuperaProcesso(), 'pje:fluxo:aguardaIntimacaoObrigacaoFazer', true, true, true, 'jef:pendenteIntimacao=false')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Trânsito em julgado">
+        <task name="[JEF] Trânsito em julgado" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="info" mapped-name="textMessage:info" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: info
+Label: Selecione a transição "Certificar trânsito em julgado" para juntar a certidão de trânsito em julgado
+Tipo: Aviso Customizado]]></description>
+        <transition to="Incluir no fluxo de certificação de trânsito em julgado" name="Certificar trânsito em julgado"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="[JEF] Juntar certidão de trânsito em julgado">
+        <transition to="[JEF] Tem movimento do grupo 385?" name="Tem movimento do grupo 385?"/>
+        <event type="node-enter">
+            <action expression="#{empty tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado') ? tramitacaoProcessualService.gravaVariavel('dataTransitoJulgado', entityManager.createNativeQuery(&quot;SELECT MAX(dt_prazo_legal_parte) FROM tb_proc_parte_expediente WHERE id_processo_parte_expediente  IN (:idsExpedientesEmControle)&quot;).setParameter('idsExpedientesEmControle', tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesRecurso')).getSingleResult()) : ''}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaProcesso().setDtTransitadoJulgado(tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:certidaoTransitoJulgado', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,70,80))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado'),null)}"/>
+            <action expression="#{preencherMovimento.deCodigo(848).comComplementoDeCodigo(14).doTipoDinamico().preencherComData(dateUtil.stringToDate(dateUtil.getDataFormatada(tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado'),'dd/MM/yyyy HH:mm'),'dd/MM/yyyy HH:mm')).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{preencherMovimento.deCodigo(581).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(107).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:certidaoTransitoJulgado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('dataTransitoJulgado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+    </node>
+    <node name="[JEF] Juntar certidão de trânsito em julgado e arquivar">
+        <transition to="[JEF] Transitados em julgado" name="Transitados em julgado"/>
+        <event type="node-enter">
+            <action expression="#{empty tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado') ? tramitacaoProcessualService.gravaVariavel('dataTransitoJulgado', entityManager.createNativeQuery(&quot;SELECT MAX(dt_prazo_legal_parte) FROM tb_proc_parte_expediente WHERE id_processo_parte_expediente  IN (:idsExpedientesEmControle)&quot;).setParameter('idsExpedientesEmControle', tramitacaoProcessualService.recuperaVariavel('jef:idsExpedientesRecurso')).getSingleResult()) : ''}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaProcesso().setDtTransitadoJulgado(tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:certidaoTransitoJulgado', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,70,80))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado'),null)}"/>
+            <action expression="#{preencherMovimento.deCodigo(848).comComplementoDeCodigo(14).doTipoDinamico().preencherComData(dateUtil.stringToDate(dateUtil.getDataFormatada(tramitacaoProcessualService.recuperaVariavel('dataTransitoJulgado'),'dd/MM/yyyy HH:mm'),'dd/MM/yyyy HH:mm')).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{preencherMovimento.deCodigo(581).comComplementoDeCodigo(4).doTipoDominio().preencherComElementoDeCodigo(107).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('jef:certidaoTransitoJulgado')).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:certidaoTransitoJulgado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('dataTransitoJulgado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:dataEntradaControlarPrazo')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Transitados em julgado">
+        <task name="[JEF] Transitados em julgado" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="ultimoAto" mapped-name="visualizarUltimoAto:ultimoAto" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de cumprimento de sentença" name="Cumprir sentença"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{processoEventoManager.temMovimento(tramitacaoProcessualService.recuperaProcesso(), eventoManager.findByCodigoCNJ(385), null, processoDocumentoManager.getUltimoProcessoDocumento(parametroUtil.getTipoProcessoDocumentoSentenca(),tramitacaoProcessualService.recuperaProcesso().processo)) ? 'Tem movimento 220, 11878 ou 11879?' : 'Tem movimento do grupo 456?'}" name="[JEF] Tem movimento do grupo 385?">
+        <transition to="[JEF] Tem movimento 220, 11878 ou 11879?" name="Tem movimento 220, 11878 ou 11879?"/>
+        <transition to="[JEF] Tem movimento do grupo 456?" name="Tem movimento do grupo 456?"/>
+    </decision>
+    <decision expression="#{processoEventoDAO.recuperar(processoDocumentoManager.getUltimoProcessoDocumento(parametroUtil.getTipoProcessoDocumentoSentenca(),tramitacaoProcessualService.recuperaProcesso().processo)).{pe | !(pe.evento.codEvento.equals('220') or pe.evento.codEvento.equals('11878') or pe.evento.codEvento.equals('11879')) and pe.evento.getHierarchy().contains(eventoDAO.findByCodigoCNJ('385'))}.contains(true) ? 'Alterar classe para 12078' : 'Analisar pendência para arquivo'}" name="[JEF] Tem movimento 220, 11878 ou 11879?">
+        <transition to="[JEF] Analisar pendência para arquivo" name="Analisar pendência para arquivo"/>
+        <transition to="[JEF] Alterar classe para 12078" name="Alterar classe para 12078"/>
+    </decision>
+    <node name="[JEF] Alterar classe para 12078">
+        <transition to="[JEF] Cumprir sentença" name="Cumprir sentença"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(14739).comComplementoDeNome('classe_anterior').preencherComTexto(tramitacaoProcessualService.recuperaProcesso().getClasseJudicial().getClasseJudicial()).comComplementoDeNome('classe_nova').preencherComTexto(classeJudicialManager.findByCodigo('12078').getClasseJudicial()).lancarMovimento()}"/>
+            <action expression="#{entityManager.createNativeQuery(&quot;insert into tb_proc_historico_classe (id_classe_anterior, id_classe_atual, in_inversao_polos, dt_inicio, dt_fim, id_processo_trf) values (:idClasseAnterior, :idClasseAtual, false, :dataInicio, now(), :idProcesso)&quot;).setParameter('idClasseAnterior',tramitacaoProcessualService.recuperaProcesso().getClasseJudicial().getIdClasseJudicial()).setParameter('idClasseAtual',classeJudicialManager.findByCodigo('12078').getIdClasseJudicial()).setParameter('dataInicio', processoHistoricoClasseDAO.verificaDataInicio(tramitacaoProcessualService.recuperaProcesso())).setParameter('idProcesso', tramitacaoProcessualService.recuperaProcesso().getIdProcessoTrf()).executeUpdate()}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaProcesso().setClasseJudicial(classeJudicialManager.findByCodigo('12078'))}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Cumprir sentença">
+        <task name="[JEF] Cumprir sentença" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de RPV-PRC" name="Expedir RPV-PRC"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Analisar pendência para arquivo">
+        <task name="[JEF] Analisar pendência para arquivo" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision expression="#{processoEventoManager.temMovimento(tramitacaoProcessualService.recuperaProcesso(), eventoManager.findByCodigoCNJ(456), null, processoDocumentoManager.getUltimoProcessoDocumento(parametroUtil.getTipoProcessoDocumentoSentenca(),tramitacaoProcessualService.recuperaProcesso().processo)) ? 'Arquivar' : 'Analisar pendência para arquivo'}" name="[JEF] Tem movimento do grupo 456?">
+        <transition to="[JEF] Arquivar" name="Arquivar"/>
+        <transition to="[JEF] Analisar pendência para arquivo" name="Analisar pendência para arquivo"/>
+    </decision>
+    <process-state name="[JEF] Arquivar">
+        <sub-process name="[JEF] Arquivo" binding="late"/>
+        <transition to="Término" name="Término"/>
+    </process-state>
+    <process-state name="[JEF] Consultar convênios">
+        <sub-process name="[JEF] Consultar Convênios" binding="late"/>
+        <transition to="[JEF] Testa saída consultar convênios" name="Testa saída consultar convênios"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saidaConvenio') eq 'despacho' ? 'Conclusão para despacho' : 'Nó de desvio'}" name="[JEF] Testa saída consultar convênios">
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saidaConvenio')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Preparar ato de comunicação">
+        <sub-process name="[JEF] Preparar Ato de Comunicação Simplificado" binding="late"/>
+        <transition to="[JEF] Testa saída preparar ato de comunicação" name="Testa saída preparar ato de comunicação"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pacs:naoIntimar') ? 'Nó de desvio' : (comunicacaoProcessualAction.getExpedientesCorreios().size() &gt; 0 or comunicacaoProcessualAction.getExpedientesMandados().size() &gt; 0 ? 'Controlar devolução de expediente' : 'Comunicação enviada')}" name="[JEF] Testa saída preparar ato de comunicação">
+        <transition to="Incluir no fluxo de determinação de controle de prazo" name="Comunicação enviada"/>
+        <transition to="Incluir no fluxo de controlar devolução de expediente" name="Controlar devolução de expediente"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pacs:naoIntimar')}"/>
+        </event>
+    </decision>
+    <process-state name="[JEF] Controlar devolução de expediente">
+        <sub-process name="[JEF] Fluxo de controle de devolução de expediente" binding="late"/>
+        <transition to="[JEF] Testa saída da controle de devolução de expediente" name="Testa saída da controle de devolução de expediente"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('jef:saida')}" name="[JEF] Testa saída da controle de devolução de expediente">
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo para contestação"/>
+        <transition to="Incluir no fluxo de controle de prazo para contrarrazão do recurso" name="Controlar prazo para contrarrazões"/>
+        <transition to="Incluir no fluxo de controle de prazo para contrarrazão do embargo" name="Controlar prazo para contrarrazões dos embargos"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo para emendar"/>
+        <transition to="Incluir no fluxo de controle de prazo para obrigação de fazer" name="Controlar prazo para obrigação de fazer"/>
+        <transition to="Incluir no fluxo de controle de prazo para recurso" name="Controlar prazo para recurso"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:saida')}"/>
+        </event>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Comunicação enviada">
+        <task name="[JEF] Comunicação enviada" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientes'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo para contrarrazão do embargo" name="Controlar prazo para contrarrazão do embargo">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesContrarrazaoEmbargos'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo para contrarrazão do recurso" name="Controlar prazo para contrarrazão do recurso">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesContrarrazao'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo para obrigação de fazer" name="Controlar prazo para obrigação de fazer">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesObrigacaoFazer'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo para recurso" name="Controlar prazo para recurso">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToLongList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesRecurso'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar nova comunicação"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('pje:fluxo:registrociencia:meios','E,C,M,S,T')}"/>
+        </event>
+    </task-node>
+    <process-state name="[JEF] Redistribuir">
+        <sub-process name="[JEF] Redistribuição" binding="late"/>
+        <transition to="[JEF] Testa saída redistribuição" name="Testa saída redistribuição"/>
+    </process-state>
+    <decision expression="#{not empty tramitacaoProcessualService.recuperaVariavel('jef:processoNaoRedistribuido') ? 'Nó de desvio' : 'Incluir no fluxo inicial'}" name="[JEF] Testa saída redistribuição">
+        <transition to="[JEF] Incluir no fluxo inicial" name="Incluir no fluxo inicial"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:processoNaoRedistribuido')}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Incluir no fluxo inicial">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'INICIAL')}"/>
+        </event>
+    </node>
+    <process-state name="[JEF] Remeter para conciliação">
+        <sub-process name="[JEF] Conciliação" binding="late"/>
+        <transition to="Término" name="Término"/>
+    </process-state>
+    <task-node end-tasks="true" name="[JEF] Devolvidos da conciliação">
+        <task name="[JEF] Devolvidos da conciliação" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <process-state name="[JEF] Alterar dados do processo">
+        <sub-process name="[JEF] Retificar Autuação" binding="late"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+    </process-state>
+    <task-node end-tasks="true" name="[JEF] Expediente sem prazo">
+        <task name="[JEF] Expediente sem prazo" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="WEB-INF_xhtml_flx_exped_registroCiencia" mapped-name="frame:WEB-INF_xhtml_flx_exped_registroCiencia" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('pje:fluxo:registrociencia:meios','E,C,M,T,S,G')}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Remeter para contadoria">
+        <transition to="[JEF] Remetido para contadoria" name="Remetido para contadoria"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'CONT')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Remetido para contadoria">
+        <task name="[JEF] Remetido para contadoria" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Devolvidos da contadoria" name="Devolvidos da contadoria">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Devolvidos da contadoria')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('jef:aguardaContadoria',true)}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Devolvidos da contadoria">
+        <task name="[JEF] Devolvidos da contadoria" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Elaborar cálculo - Secretaria">
+        <task name="[JEF] Elaborar cálculo - Secretaria" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_revisarMinuta" mapped-name="frame:Processo_Fluxo_revisarMinuta" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+                <variable name="assinarEmLote" mapped-name="assinarLote:assinarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Cancelar elaboração de cálculo" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{lancadorMovimentosService.setCondicaoLancamentoMovimentosTemporarioNoFluxo('#{false}')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Nó de desvio')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Nó de desvio,Cancelar elaboração de cálculo')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('tiposDisponiveisIds', '57')}"/>
+            <action name="upd" expression="#{taskInstanceUtil.setVariable('mostrarBotaoGravarNoFluxo', 'false')}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('condicaoLancamentoMovimentosTemporario')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Cancelar elaboração de cálculo">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{lancadorMovimentosService.apagarMovimentosTemporarios()}"/>
+            <action expression="#{documentoJudicialService.removerDocumentoAPartirDeVariavalDeFluxo('minutaEmElaboracao')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('minutaEmElaboracao')}"/>
+        </event>
+    </node>
+    <process-state name="[JEF] Designar audiência de conciliação">
+        <sub-process name="[JEF] Conciliação Interna" binding="late"/>
+        <transition to="[JEF] Testa saída designar audiência de conciliação" name="Testa saída Designar audiência de conciliação"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'sentenca' ? 'Conclusão para julgamento' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'despacho' ? 'Conclusão para despacho' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'decisao' ? 'Conclusão para decisão' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'urgente' ? 'Conclusão urgente' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'audiencia' ? 'Designar audiência de conciliação' : (tramitacaoProcessualService.recuperaVariavel('saidaAudiencia') eq 'comunicacao' ? 'Preparar ato de comunicação' : 'Nó de desvio')))))}" name="[JEF] Testa saída designar audiência de conciliação">
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Conclusão para decisão"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Conclusão para despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Conclusão para julgamento"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Conclusão urgente"/>
+        <transition to="Incluir no fluxo de operação de audiência" name="Designar audiência de conciliação"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('saidaAudiencia')}"/>
+        </event>
+    </decision>
+    <decision expression="#{atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(tramitacaoProcessualService.recuperaVariavel('processo'), 'A,P') and tramitacaoProcessualService.recuperaVariavel('jef:podeIntimarMP') ? 'Intimar acerca da última sentença' : 'Preparar ato de comunicação'}" name="[JEF] Pode intimar acerca da última sentença?">
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação"/>
+        <transition to="[JEF] Intimar acerca da última sentença" name="Intimar acerca da última sentença"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:processoPartes')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:podeIntimarMP')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:processoPartes', entityManager.createQuery(&quot;SELECT pp FROM ProcessoParte pp WHERE pp.processoTrf = :processoTrf AND pp.inSituacao = 'A' AND pp.tipoParte.tipoParte = 'FISCAL DA LEI' AND pp.inParticipacao = 'T'&quot;).setParameter('processoTrf', tramitacaoProcessualService.recuperaProcesso()).getResultList())}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:podeIntimarMP',not tramitacaoProcessualService.recuperaVariavel('jef:processoPartes').{pp | atoComunicacaoService.verificarPossibilidadeIntimacaoEletronica(pp, false)}.contains(false))}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Intimar acerca da última sentença">
+        <transition to="[JEF] Controlar prazo para recurso" name="Controlar prazo para recurso"/>
+        <event type="node-enter">
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','D',10, processoDocumentoDAO.getUltimoProcessoDocumentoByProcessoTipoProcessoDocumento(tipoProcessoDocumentoDAO.findByCodigoDocumento('4900018', true),tramitacaoProcessualService.recuperaProcesso().processo))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','D',10, processoDocumentoDAO.getUltimoProcessoDocumentoByProcessoTipoProcessoDocumento(tipoProcessoDocumentoDAO.findByCodigoDocumento('4900018', true),tramitacaoProcessualService.recuperaProcesso().processo))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jef:idsPessoa', entityManager.createNativeQuery(&quot;SELECT id_pessoa FROM tb_processo_parte WHERE id_processo_trf = :idProcessoTrf AND in_situacao = 'A' AND id_tipo_parte = (SELECT id_tipo_parte from tb_tipo_parte where ds_tipo_parte = 'FISCAL DA LEI') AND in_participacao = 'T'&quot;).setParameter('idProcessoTrf', tramitacaoProcessualService.recuperaVariavel('processo')).getResultList())}"/>
+            <action expression="#{tramitacaoProcessualService.recuperaVariavel('jef:idsPessoa').{id | atoComunicacaoService.intimarDestinatarioEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'), id, 'D', 10, processoDocumentoDAO.getUltimoProcessoDocumentoByProcessoTipoProcessoDocumento(tipoProcessoDocumentoDAO.findByCodigoDocumento('4900018', true),tramitacaoProcessualService.recuperaProcesso().processo).idProcessoDocumento)}}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('jef:idsPessoa')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Expedir RPV-PRC">
+        <task name="[JEF] Expedir RPV-PRC" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de elaboração de comunicação de RPV-PRC" name="Elaborar comunicação de RPV-PRC"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Aguardar esclarecimentos periciais">
+        <task name="[JEF] Aguardar esclarecimentos periciais" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <process-state name="[JEF] Minutar documentos">
+        <sub-process name="[JEF] Preparar Ato Odinatório" binding="late"/>
+        <transition to="[JEF] Testa saída da preparar ato ordinatório" name="Testa saída da preparar ato ordinatório"/>
+    </process-state>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pao:atoNaoAssinado')  ? 'Nó de desvio' : (tramitacaoProcessualService.recuperaVariavel('naoTemExpedientes') ? 'Preparar ato de comunicação' : (tramitacaoProcessualService.recuperaVariavel('expedientesComPrazo') ? 'Controlar prazo' : 'Expediente sem prazo'))}" name="[JEF] Testa saída da preparar ato ordinatório">
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo"/>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Nó de desvio"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Preparar ato de comunicação"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pao:atoNaoAssinado')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('expedientesComPrazo')}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('naoTemExpedientes')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('naoTemExpedientes', not processoParteExpedienteDAO.recuperaExpedientesNaoFechados(tramitacaoProcessualService.recuperaProcesso()).{ppe | ppe.processoExpediente.processoDocumento.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado') or (ppe.processoExpediente.processoDocumentoVinculadoExpediente != null and ppe.processoExpediente.processoDocumentoVinculadoExpediente.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))}.contains(true))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('expedientesComPrazo', processoParteExpedienteDAO.recuperaExpedientesNaoFechados(tramitacaoProcessualService.recuperaProcesso()).{ppe | (ppe.processoExpediente.processoDocumento.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado') or (ppe.processoExpediente.processoDocumentoVinculadoExpediente != null and ppe.processoExpediente.processoDocumentoVinculadoExpediente.idProcessoDocumento == tramitacaoProcessualService.recuperaVariavel('pje:fluxo:ultimoDocumentoJuntado'))) and ppe.prazoLegal != null and ppe.prazoLegal gt 0}.contains(true))}"/>
+        </event>
+    </decision>
+    <node name="[JEF] Incluir no fluxo de obrigação de fazer manual">
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="node-enter">
+            <action expression="#{fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Fluxo de obrigação de fazer') or  fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Fluxo de controle de prazo para obrigação de fazer') ? processoJudicialService.sinalizarFluxo(tramitacaoProcessualService.recuperaProcesso(), 'pje:fluxo:aguardaIntimacaoObrigacaoFazer', true, true, true, 'jef:pendenteIntimacao=false') : processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(),'JEF_FLUX_OBR_FAZ',collectionUtilsPje.stringToMap('jef:pendenteIntimacao=false'))}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Juizado Especial Federal">
+        <task name="Nó de Desvio - [JEF] Juizado Especial Federal" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="[JEF] Cumprir sentença" name="[JEF] Cumprir sentença">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Aguardar esclarecimentos periciais" name="Aguardar esclarecimentos periciais">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Alterar dados do processo" name="Alterar dados do processo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Analisar fim do sobrestamento" name="Analisar fim do sobrestamento">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Encaminhar para análise de laudo" name="Analisar laudo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Analisar pendência para arquivo" name="Analisar pendência para arquivo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise da saída de exceção" name="Análise da saída de exceção">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise do fim do prazo da contestação" name="Análise do fim do prazo da contestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise do fim do prazo da emenda" name="Análise do fim do prazo da emenda">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise inicial" name="Análise inicial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise inicial - Audiência" name="Análise inicial - Audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Análise inicial - Perícia" name="Análise inicial - Perícia">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Arquivar" name="Arquivar">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Arquivo" name="Arquivo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Assinar ato - Sentença sem mérito" name="Ato do magistrado - Sem mérito">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Ato do magistrado sem intimação" name="Ato do magistrado sem intimação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Ato proferido" name="Ato proferido">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Audiência - Realizada" name="Audiência realizada">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Baixa" name="Baixa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Citar - Controle automático" name="Citar - Controle automático">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Comunicação enviada" name="Comunicação enviada">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato judicial" name="Conclusão para decisão">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato judicial" name="Conclusão para despacho">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato judicial" name="Conclusão para julgamento">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato judicial" name="Conclusão para julgamento - audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato judicial" name="Conclusão urgente">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Consultar convênios" name="Consultar convênios">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar devolução de expediente" name="Controlar expediente físico">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo" name="Controlar prazo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo para contestação" name="Controlar prazo para contestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo para contrarrazões" name="Controlar prazo para contrarrazões">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo para contrarrazões dos embargos" name="Controlar prazo para contrarrazões dos embargos">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo para emendar" name="Controlar prazo para emendar">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Incluir no fluxo de obrigação de fazer manual" name="Controlar prazo para obrigação de fazer">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Controlar prazo para recurso" name="Controlar prazo para recurso">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Alterar classe para 12078" name="Cumprir sentença">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Designar audiência" name="Designar audiência">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Designar audiência de conciliação" name="Designar audiência de conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Designar perícia" name="Designar perícia">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Devolvidos da conciliação" name="Devolvidos da conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Devolvidos da contadoria" name="Devolvidos da contadoria">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Elaborar cálculo - Secretaria" name="Elaborar cálculo - Secretaria">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Emendar - Controle automático" name="Emendar - Controle automático">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente com manifestação" name="Expediente com manifestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente da emenda com manifestação" name="Expediente da emenda com manifestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente de contrarrazões com manifestação" name="Expediente de contrarrazões com manifestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente de recurso com manifestação" name="Expediente de recurso com manifestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente sem manifestação" name="Expediente sem manifestação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expediente sem prazo" name="Expediente sem prazo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Expedir RPV-PRC" name="Expedir RPV-PRC">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir processo no fluxo" name="Incluir processo no fluxo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Pode intimar acerca da última sentença?" name="Intimar acerca da última sentença">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Minutar documentos" name="Minutar documentos">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Pendente de envio para Turma Recursal" name="Pendente de envio para Turma Recursal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Pendência para arquivo" name="Pendência para arquivo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Pendência de intimação da sentença de extinção" name="Pendência para arquivo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Preparar ato de comunicação" name="Preparar ato de comunicação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Redistribuir" name="Redistribuir">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Remeter para conciliação" name="Remeter para conciliação">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Remeter para contadoria" name="Remeter para contadoria">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Remeter para turma recursal" name="Remeter para turma recursal">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Remetido para contadoria" name="Remetido para contadoria">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Saída de exceção" name="Saída de exceção">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Sobrestamento" name="Sobrestamento">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Transitados em julgado" name="Transitados em julgado">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Trânsito em julgado" name="Trânsito em julgado">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Término" name="Término">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Saída de exceção">
+        <task name="[JEF] Saída de exceção" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Análise da saída de exceção">
+        <task name="[JEF] Análise da saída de exceção" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Arquivo">
+        <task name="[JEF] Arquivo" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Migrar para o novo fluxo"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Reativar processo" name="Reativar processo"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(22).lancarMovimento()}"/>
+        </event>
+    </task-node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="[JEF] Baixa">
+        <task name="[JEF] Baixa" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de arquivamento" name="Migrar para o novo fluxo"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="[JEF] Reativar processo" name="Reativar processo"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo('22').lancarMovimento()}"/>
+        </event>
+    </task-node>
+    <node name="[JEF] Reativar processo">
+        <transition to="Incluir no fluxo de análise da secretaria" name="Incluir no fluxo de análise da secretaria"/>
+        <event type="node-enter">
+            <action expression="#{preencherMovimento.deCodigo(849).lancarMovimento()}"/>
+            <action expression="#{tramitacaoProcessualService.removerSituacao('jus:arquivado')}"/>
+            <action expression="#{tramitacaoProcessualService.acrescentarSituacao('jus:andamento')}"/>
+        </event>
+    </node>
+    <task-node end-tasks="true" name="[JEF] Pendente de envio para Turma Recursal">
+        <task name="[JEF] Pendente de envio para Turma Recursal" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de remessa para turma recursal" name="Remeter para turma recursal"/>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Ato proferido">
+        <task name="[JEF] Ato proferido" swimlane="Secretaria e Gabinete" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="MovimentarEmLote" mapped-name="movimentarLote:MovimentarEmLote" access="read,write"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', 'false')}"/>
+        </event>
+    </task-node>
+    <process-state name="[JEF] Prevenção">
+        <sub-process name="[JEF] Prevenção" binding="late"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="node-enter">
+            <action name="upd" expression="#{preencherMovimento.deCodigo(51).comComplementoDeCodigo(3).doTipoDominio().preencherComElementoDeCodigo(6).lancarMovimento()}"/>
+        </event>
+    </process-state>
+    <process-state name="[JEF] Contadoria">
+        <sub-process name="[JEF] Contadoria" binding="late"/>
+        <transition to="[JEF] Devolvidos da contadoria" name="Devolvidos da contadoria"/>
+    </process-state>
+    <decision name="[JEF] Intimação - Embargos"/>
+    <decision name="[JEF] Emenda ou contestação automática?"/>
+    <node name="[JEF] Lançar sentença de extinção"/>
+    <task-node end-tasks="true" name="[JEF] Pendência para arquivo">
+        <task name="[JEF] Pendência para arquivo" swimlane="Secretaria e Gabinete" priority="3"/>
+        <transition to="Incluir no fluxo de arquivamento" name="Arquivar"/>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Encaminhar para análise da secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de desvio">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <decision name="[JEF] Intimação - Contrarrazões"/>
+    <node name="Incluir processo no fluxo">
+        <transition to="Nó de Desvio - [JEF] Juizado Especial Federal" name="Nó de Desvio - [JEF] Juizado Especial Federal"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(processoJudicialService.findById(355383),'INICIAL')}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de despacho">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDESP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de decisão">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de decisão urgente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDECURG', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de sentença">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELSENT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de sentença da audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELSENTAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de sentença de extinção">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELSENTEXT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de outros documentos">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDOC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de redistribuição">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_RED', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para emendar">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZEM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para contestação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZCONT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para recurso">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZREC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para contrarrazão do recurso">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZCONTRREC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para contrarrazão do embargo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZCONTREMB', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para obrigação de fazer">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Análise de manifestação de obrigação de fazer') or fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Controle de prazo para obrigação de fazer') ? processoJudicialService.sinalizarFluxo(tramitacaoProcessualService.recuperaProcesso(), 'pje:fluxo:aguardaIntimacaoObrigacaoFazer', true, true, true) : ''}"/>
+            <action expression="#{fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Análise de manifestação de obrigação de fazer') or not (fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Análise de manifestação de obrigação de fazer') or fluxoManager.existeProcessoNoFluxoEmExecucao(tramitacaoProcessualService.recuperaVariavel('processo'), '[JEF] Controle de prazo para obrigação de fazer')) ? processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZOBRFAZ') : ''}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de certificação de trânsito em julgado">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CERTTRANSJULG', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de audiência">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_OPAUD', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_OPPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de arquivamento">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('jaArquivado', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ARQ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de cálculo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('deslocado', false)}"/>
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'deslocado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCALC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de remessa para contadoria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_REMCONT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de sobrestamento">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_SOBRPROC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação para emendar a inicial">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOMEMIN', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação para contestação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOMCONT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de remessa para turma recursal">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_REMTURMREC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de remessa para o CEJUSC">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_REMINTCEJUSC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de retorno para o juízo de origem">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_RETJUIZOR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controlar devolução de expediente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'comunicacaoProcessualAction:idsExpedientes' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRDEVEXP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de consulta de convênios">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONSCONV', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de cumprimento de sentença">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CUMPRSENT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de RPV-PRC">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELRPVPRC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de aguardo de esclarecimentos periciais">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_AGESCLPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de manifestação de recurso">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANMANREC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de manifestação de contrarrazão do recurso">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANMANCONTRREC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de manifestação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANMAN', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de determinação de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' and e.getKey() != 'comunicacaoProcessualAction:idsExpedientes' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_DETCONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação de RPV-PRC">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processInstanceUtil.getVariables().{e | e.getKey() != 'jef:idsExpedientes' and e.getKey() != 'jef:idsExpedientesObrigacaoFazer' and e.getKey() != 'jef:idsExpedientesContestacao' and e.getKey() != 'jef:idsExpedientesEmenda' and e.getKey() != 'jef:idsExpedientesRecurso' and e.getKey() != 'jef:idsExpedientesContrarrazaoEmbargos' and e.getKey() != 'jef:idsExpedientesContrarrazao' and e.getKey() != 'processo' and e.getKey() != 'pje:atoProferido' and e.getKey() != 'pje:fluxo:ultimoDocumentoJuntado' ? tramitacaoProcessualService.apagaVariavel(e.getKey()) : ''}.contains('')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOMRPVPRC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

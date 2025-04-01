@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="Integração PJe x Ecarta">
+    <description><![CDATA[Código: INTPJEECART]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Direção">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1,9:5945,9:5197,10:5947,2896:1470,2896:5197,2896:1469,2896:1338,2896:5483')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="Direção" priority="3"/>
+        <transition to="[ECARTA] Aguardando resposta dos correios" name="[ECARTA] Aguardando resposta dos correios"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="[ECARTA] Aguardando resposta dos correios">
+        <task name="[ECARTA] Aguardando resposta dos correios" swimlane="Direção" priority="3">
+            <controller>
+                <variable name="info" mapped-name="textMessage:info" access="read,write"/>
+                <variable name="Aviso" mapped-name="textAlert:Aviso" access="read,write"/>
+            </controller>
+        </task>
+        <description><![CDATA[Variável: info
+Label:
+Tipo: Aviso Customizado
+
+Variável: Aviso
+Label: #{tramitacaoProcessualService.recuperaVariavelTarefa('pje:fluxo:ecarta')}
+Tipo: Aviso]]></description>
+        <transition to="[ECARTA] Resposta" name="[ECARTA] Resposta"/>
+        <transition to="[ECARTA] Aguardando resposta dos correios" name="[ECARTA] Enviar novamente"/>
+        <transition to="Nó de Desvio - Integração PJe x Ecarta" name="Nó de Desvio - Integração PJe x Ecarta">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', false)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:ecarta', ecartaRestClient.enviaExpediente(authenticator.getAccessToken(),comunicacaoProcessualAction.getProcessoParteExpedientesCorreios(), 'COM_AR', '0074653296'))}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('ecarta:resposta:documento:10001', true)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('ecarta:resposta:documento:10002', true)}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('ecarta:resposta:documento:10003', true)}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[ECARTA] Resposta">
+        <task name="[ECARTA] Resposta" swimlane="Direção" priority="3">
+            <controller>
+                <variable name="Data_Ciencia" mapped-name="date:Data_Ciencia" access="read,write"/>
+                <variable name="Processo_Fluxo_visualizarDecisao" mapped-name="frame:Processo_Fluxo_visualizarDecisao" access="read,write"/>
+                <variable name="resposta" mapped-name="sim_nao:resposta" access="read"/>
+            </controller>
+        </task>
+        <transition to="Término" name="Finalizar"/>
+        <transition to="Incluir no fluxo de controle de devolução de expediente" name="Incluir no fluxo de controle de devolução de expediente">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de determinação de controle de prazo" name="Incluir no fluxo de determinação de controle de prazo">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Nó de Desvio - Integração PJe x Ecarta" name="Nó de Desvio - Integração PJe x Ecarta">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('mostrarBotaoGravarNoFluxo', false)}"/>
+        </event>
+    </task-node>
+    <node name="Incluir no fluxo de determinação de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_DETCONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de devolução de expediente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRDEVEXP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - Integração PJe x Ecarta">
+        <task name="Nó de Desvio - Integração PJe x Ecarta" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[ECARTA] Aguardando resposta dos correios" name="[ECARTA] Aguardando resposta dos correios"/>
+        <transition to="[ECARTA] Resposta" name="[ECARTA] Resposta"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>
