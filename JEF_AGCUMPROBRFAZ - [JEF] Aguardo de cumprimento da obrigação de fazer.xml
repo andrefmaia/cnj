@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Aguardo de cumprimento da obrigação de fazer">
+    <description><![CDATA[código: JEF_AGCUMPROBRFAZ]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1,9:5945,9:5197,10:5947')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="[JEF] Secretaria - Aguardar obrigação de fazer" name="[JEF] Secretaria - Aguardar obrigação de fazer"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="[JEF] Secretaria - Aguardar obrigação de fazer">
+        <task name="[JEF] Secretaria - Aguardar obrigação de fazer" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Analisar - Secretaria"/>
+        <transition to="Nó de Desvio - [JEF] Aguardo de cumprimento da obrigação de fazer" name="Nó de Desvio - [JEF] Aguardo de cumprimento da obrigação de fazer">
+            <condition expression="#{true}"/>
+        </transition>
+    </task-node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Aguardo de cumprimento da obrigação de fazer">
+        <task name="Nó de Desvio - [JEF] Aguardo de cumprimento da obrigação de fazer" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Secretaria - Aguardar obrigação de fazer" name="[JEF] Secretaria - Aguardar obrigação de fazer"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>

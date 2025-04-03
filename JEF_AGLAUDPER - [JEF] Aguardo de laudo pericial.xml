@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Aguardo de laudo pericial">
+    <description><![CDATA[Código: JEF_AGLAUDPER...]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="Administrador">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('4738:1')}"/>
+    </swimlane>
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1,9:5945,9:5197,10:5947,2896:1470,2896:5197,2896:1469,2896:1338')}"/>
+    </swimlane>
+    <swimlane name="Nó de Desvio - [JEF] Aguardo de laudo pericial"/>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="Ausência à perícia informada?" name="Ausência à perícia informada?"/>
+    </start-state>  
+    <!-- NODES -->
+    <decision expression="#{entityManager.createNativeQuery(&quot;select cd_status_pericia = 'A' from tb_processo_pericia where id_processo_trf = :idProcesso order by id_processo_pericia desc limit 1&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() ? 'Incluir no fluxo de análise de ausência à perícia' : 'Laudo pericial juntado?'}" name="Ausência à perícia informada?">
+        <transition to="Laudo pericial juntado?" name="Laudo pericial juntado?"/>
+        <transition to="Incluir no fluxo de análise de ausência à perícia" name="Incluir no fluxo de análise de ausência à perícia"/>
+    </decision>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'sjp:aguardaLaudoPericial' ? 'Analisar laudo' : 'Mais de trinta dias da marcação da perícia?'}" name="Laudo pericial juntado?">
+        <transition to="Mais de trinta dias da marcação da perícia?" name="Mais de trinta dias da marcação da perícia?"/>
+        <transition to="Intimar partes" name="Analisar laudo"/>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+        </event>
+    </decision>
+    <decision expression="#{entityManager.createNativeQuery(&quot;select exists (select 1 from tb_processo_pericia where cd_status_pericia in ('M','D') and id_processo_trf = :idProcesso and dt_marcacao + interval '30 days' &lt; now())&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() ? 'Perícia - Cobrar laudo' : 'Aguardar laudo'}" name="Mais de trinta dias da marcação da perícia?">
+        <transition to="[JEF] Perícia - Aguardar laudo" name="Aguardar laudo"/>
+        <transition to="[JEF] Perícia - Cobrar laudo" name="Perícia - Cobrar laudo"/>
+    </decision>
+    <task-node end-tasks="true" name="[JEF] Perícia - Aguardar laudo">
+        <task name="[JEF] Perícia - Aguardar laudo" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" mapped-name="frame:Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise de secretaria" name="Analisar - Secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Comunicação - Elaborar"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação simplificada" name="Comunicação - Elaborar (simplificada)"/>
+        <transition to="Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Minutar decisão"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Minutar decisão urgente"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Minutar despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Minutar sentença">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('deslocado') != true and not collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia)}"/>
+        </transition>
+        <transition to="Nó de Desvio - [JEF] Aguardo de laudo pericial" name="Nó de Desvio - [JEF] Aguardo de laudo pericial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Aguardar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0}"/>
+        </transition>
+        <transition to="Incluir no fluxo de aguardo de esclarecimentos periciais" name="Perícia - Aguardar esclarecimentos periciais"/>
+        <transition to="[JEF] Perícia - Cobrar laudo" name="Perícia - Cobrar laudo"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Designar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() == 0}"/>
+        </transition>
+        <transition to="Incluir no fluxo de análise de laudo pericial" name="Incluir no fluxo de análise de laudo pericial">
+            <condition expression="#{authenticator.getPapelAtual() != null ? authenticator.getPapelAtual().identificador == 'admin' : false}"/>
+        </transition>
+        <transition to="Intimar partes" name="Intimar partes"/>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:temporizador:tarefaAguardar', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Determinar próxima tarefa')} "/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('sjp:aguardaLaudoPericial', true)}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:temporizador:dataAguardar')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:temporizador:dataAguardar', dateUtil.getBeginningOfToday())}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="[JEF] Perícia - Cobrar laudo">
+        <task name="[JEF] Perícia - Cobrar laudo" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" mapped-name="frame:Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise de secretaria" name="Analisar - Secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Comunicação - Elaborar"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação simplificada" name="Comunicação - Elaborar (simplificada)"/>
+        <transition to="Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Minutar decisão"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Minutar decisão urgente"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Minutar despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Minutar sentença">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('deslocado') != true and not collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia)}"/>
+        </transition>
+        <transition to="Nó de Desvio - [JEF] Aguardo de laudo pericial" name="Nó de Desvio - [JEF] Aguardo de laudo pericial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Aguardar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0}"/>
+        </transition>
+        <transition to="Incluir no fluxo de aguardo de esclarecimentos periciais" name="Perícia - Aguardar esclarecimentos periciais"/>
+        <transition to="Incluir no fluxo de análise de laudo pericial" name="Perícia - Analisar laudo"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Designar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() == 0}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Determinar próxima tarefa')} "/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('sjp:aguardaLaudoPericial', true)}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:temporizador:tarefaAguardar', true)}"/>
+        </event>
+        <event type="node-leave">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:fluxo:temporizador:dataAguardar')}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('pje:fluxo:temporizador:dataAguardar', dateUtil.getBeginningOfToday())}"/>
+        </event>
+    </task-node>
+    <decision expression="#{tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:intimacaoLote' ? 'Analisar comunicação em lote' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:pericia:aguardaDesignacao' or tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:pericia:aguardaRedesignacao' ? 'Intimar da designação de perícia' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:pericia:aguardaCancelamento' ? 'Intimar do cancelamento da perícia' : (tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'sjp:aguardaLaudoPericial' or tramitacaoProcessualService.recuperaVariavel('pje:evento:sinalizacao:processos') eq 'pje:fluxo:temporizador:tarefaAguardar' ? 'Ausência à perícia informada?' : 'Intimar da designação de perícia')))}" name="Determinar próxima tarefa">
+        <transition to="Incluir no fluxo de análise de comunicação em lote" name="Analisar comunicação em lote"/>
+        <transition to="Incluir no fluxo de intimação da designação de perícia" name="Intimar da designação de perícia"/>
+        <transition to="Incluir no fluxo de intimação do cancelamento da perícia" name="Intimar do cancelamento da perícia"/>
+        <transition to="Ausência à perícia informada?" name="Ausência à perícia informada?"/>
+    </decision>
+    <node name="Intimar partes">
+        <transition to="Incluir no fluxo de análise de laudo pericial" name="Incluir no fluxo de análise de laudo pericial"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('documento', documentoJudicialService.gerarMinuta(tramitacaoProcessualService.recuperaVariavel('processo'),null,null,60,6496))}"/>
+            <action expression="#{documentoJudicialService.juntarDocumento(tramitacaoProcessualService.recuperaVariavel('documento'),null)}"/>
+            <action expression="#{preencherMovimento.deCodigo(12265).associarAoDocumentoDeId(tramitacaoProcessualService.recuperaVariavel('documento')).lancarMovimento()}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'A','D',15,tramitacaoProcessualService.recuperaVariavel('documento'))}"/>
+            <action expression="#{atoComunicacaoService.intimarEletronicamente(tramitacaoProcessualService.recuperaVariavel('processo'),'P','D',15,tramitacaoProcessualService.recuperaVariavel('documento'))}"/>
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('documento')}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de comunicação em lote">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('fluxo:saida', 'Análise de laudo pericial')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANCOMLOT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de laudo pericial">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANLAUDPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de ausência à perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANAUSPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de despacho">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('lancarConclusao', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDESP', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de decisão">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('lancarConclusao', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDEC', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de decisão urgente">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('lancarConclusao', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELDECURG', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de sentença">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('lancarConclusao', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELSENT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de operação de perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_OPPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação simplificada">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOMSIMPL', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise de secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de aguardo de esclarecimentos periciais">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_AGESCLPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação da designação de perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_INTDESPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de intimação do cancelamento da perícia">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.apagaVariavel('pje:evento:sinalizacao:processos')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('apenasIntimarCancelamento', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CANCPER', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZ', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de controle de prazo para contestação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_CONTRPRAZCONT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="[JEF] Perícia - Analisar laudo">
+        <task name="[JEF] Perícia - Analisar laudo" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" mapped-name="frame:Processo_Fluxo_PericiaAjg_frameDesignarPericiaAjg" access="read,write"/>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+                <variable name="intimarEmLote" mapped-name="intimarLote:intimarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise de secretaria" name="Analisar - Secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Comunicação - Elaborar"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação simplificada" name="Comunicação - Elaborar (simplificada)"/>
+        <transition to="Incluir no fluxo de controle de prazo" name="Controlar prazo - Em curso">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipoDiferente')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientes'))).getResultList()}"/>
+        </transition>
+        <transition to="Incluir no fluxo de controle de prazo para contestação" name="Controlar prazo para contestação - Em curso">
+            <condition expression="#{not empty entityManager.createNativeQuery(parametroUtil.getParametro('fluxo:selectExpedienteAbertoPorTipo')).setParameter('idProcesso',tramitacaoProcessualService.recuperaVariavel('processo')).setParameter('idsTiposExpedientes',collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('jef:fluxo:idsTiposExpedientesContestacao'))).getResultList() and tramitacaoProcessualService.recuperaVariavel('deslocado') != true and not collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia)}"/>
+        </transition>
+        <transition to="Determinar próxima tarefa" name="Determinar próxima tarefa">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de elaboração de decisão" name="Minutar decisão"/>
+        <transition to="Incluir no fluxo de elaboração de decisão urgente" name="Minutar decisão urgente"/>
+        <transition to="Incluir no fluxo de elaboração de despacho" name="Minutar despacho"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Minutar sentença">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('deslocado') != true and not collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia)}"/>
+        </transition>
+        <transition to="Nó de Desvio - [JEF] Aguardo de laudo pericial" name="Nó de Desvio - [JEF] Aguardo de laudo pericial">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Aguardar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() &gt; 0}"/>
+        </transition>
+        <transition to="Incluir no fluxo de aguardo de esclarecimentos periciais" name="Perícia - Aguardar esclarecimentos periciais"/>
+        <transition to="Incluir no fluxo de operação de perícia" name="Perícia - Designar">
+            <condition expression="#{entityManager.createNativeQuery(&quot;SELECT COUNT(*) FROM tb_processo_pericia WHERE cd_status_pericia in ('M','D') AND id_processo_trf = :idProcesso&quot;).setParameter('idProcesso', tramitacaoProcessualService.recuperaVariavel('processo')).getSingleResult() == 0}"/>
+        </transition>
+        <event type="task-create">
+            <action name="upd" expression="#{taskInstanceUtil.setFrameDefaultTransition('Determinar próxima tarefa')}"/>
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('pje:fluxo:transicao:dispensaRequeridos','Determinar próxima tarefa')} "/>
+        </event>
+        <event type="task-assign">
+            <action name="upd" expression="#{tramitacaoProcessualService.gravaVariavelTarefa('tiposDisponiveisIds', not empty tramitacaoProcessualService.recuperaVariavel('jef:idsDocumentosPossiveis') ? tramitacaoProcessualService.recuperaVariavel('jef:idsDocumentosPossiveis') : parametroUtil.getParametro('pje:fluxo:idsDocumentosPAC'))}"/>
+        </event>
+    </task-node>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Aguardo de laudo pericial">
+        <task name="Nó de Desvio - [JEF] Aguardo de laudo pericial" swimlane="Nó de Desvio - [JEF] Aguardo de laudo pericial" priority="3"/>
+        <transition to="[JEF] Perícia - Aguardar laudo" name="[JEF] Perícia - Aguardar laudo"/>
+        <transition to="[JEF] Perícia - Analisar laudo" name="[JEF] Perícia - Analisar laudo"/>
+        <transition to="[JEF] Perícia - Cobrar laudo" name="[JEF] Perícia - Cobrar laudo"/>
+        <transition to="Término" name="Término"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>  
+    <!-- ACTIONS --> 
+</process-definition>

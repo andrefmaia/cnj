@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<process-definition xmlns="urn:jbpm.org:jpdl-3.2" name="[JEF] Aguardo de esclarecimentos periciais">
+    <description><![CDATA[Código: JEF_AGESCLPER.
+Descrição: [JEF] Aguardo de esclarecimentos periciais]]></description>  
+    <!-- SWIMLANES -->
+    <swimlane name="solicitante">
+        <assignment pooled-actors="#{localizacaoAssignment.getPooledActors('10:1338,9:1469,10:5483,4738:1,9:5945,9:5197,10:5947,2896:1470,2896:5197,2896:1469,2896:1338')}"/>
+    </swimlane>  
+    <!-- START-STATE -->
+    <start-state name="Início">
+        <task name="Tarefa inicial" swimlane="solicitante" priority="3"/>
+        <transition to="[JEF] Perícia - Aguardar esclarecimentos periciais" name="[JEF] Perícia - Aguardar esclarecimentos periciais"/>
+    </start-state>  
+    <!-- NODES -->
+    <task-node end-tasks="true" name="[JEF] Perícia - Aguardar esclarecimentos periciais">
+        <task name="[JEF] Perícia - Aguardar esclarecimentos periciais" swimlane="solicitante" priority="3">
+            <controller>
+                <variable name="movimentarEmLote" mapped-name="movimentarLote:movimentarEmLote" access="read"/>
+            </controller>
+        </task>
+        <transition to="Incluir no fluxo de análise da secretaria" name="Analisar - Secretaria"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação" name="Comunicação - Elaborar"/>
+        <transition to="Incluir no fluxo de elaboração de comunicação simplificada" name="Comunicação - Elaborar (simplificada)"/>
+        <transition to="Incluir no fluxo de elaboração de sentença" name="Minutar sentença">
+            <condition expression="#{tramitacaoProcessualService.recuperaVariavel('deslocado') != true and not collectionUtilsPje.convertStringToIntegerList(parametroUtil.getParametro('fluxo:competencias:jef:cejusc')).contains(tramitacaoProcessualService.recuperaProcesso().getCompetencia().idCompetencia)}"/>
+        </transition>
+        <transition to="Nó de Desvio - [JEF] Aguardo de esclarecimentos periciais" name="Nó de Desvio - [JEF] Aguardo de esclarecimentos periciais">
+            <condition expression="#{true}"/>
+        </transition>
+        <transition to="Incluir no fluxo de Analisar esclarecimentos periciais" name="Incluir no fluxo de Analisar esclarecimentos periciais">
+            <condition expression="#{true}"/>
+        </transition>
+        <event type="task-create">
+            <action expression="#{taskInstanceUtil.setFrameDefaultTransition('Incluir no fluxo de Analisar esclarecimentos periciais')}"/>
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('sjp:aguardaLaudoPericial', true)}"/>
+        </event>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavelTarefa('sjp:aguardaLaudoPericial', true)}"/>
+        </event>
+    </task-node>
+    <node name="Incluir no fluxo de Analisar esclarecimentos periciais">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JFCE_INT_AUT_MANIF_PERITO_v2', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de análise da secretaria">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ANSECR', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de sentença">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{tramitacaoProcessualService.gravaVariavel('lancarConclusao', true)}"/>
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELSENT', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOM', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <node name="Incluir no fluxo de elaboração de comunicação simplificada">
+        <transition to="Término" name="Término"/>
+        <event type="node-enter">
+            <action expression="#{processoJudicialService.incluirNovoFluxo(tramitacaoProcessualService.recuperaProcesso(), 'JEF_ELCOMSIMPL', processInstanceUtil.getVariables())}"/>
+        </event>
+    </node>
+    <end-state name="Término"/>
+    <task-node end-tasks="true" name="Nó de Desvio - [JEF] Aguardo de esclarecimentos periciais">
+        <task name="Nó de Desvio - [JEF] Aguardo de esclarecimentos periciais" priority="3"/>
+        <transition to="Término" name="Término"/>
+        <transition to="[JEF] Perícia - Aguardar esclarecimentos periciais" name="[JEF] Perícia - Aguardar esclarecimentos periciais"/>
+    </task-node>  
+    <!-- PROCESS-EVENTS -->
+    <event type="superstate-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="before-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-create">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-created">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-assign">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="transition">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="after-signal">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="timer">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="task-start">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="subprocess-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="process-end">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="superstate-leave">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event>
+    <event type="node-enter">
+        <script>br.com.infox.ibpm.util.JbpmEvents.raiseEvent(executionContext)</script>
+    </event> 
+</process-definition>
